@@ -1,0 +1,3601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аудиоплеер для книг</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .glass-effect {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        /* Fix for select dropdown options visibility */
+        select option {
+            background-color: rgba(30, 41, 59, 0.95) !important;
+            color: white !important;
+            padding: 8px 12px !important;
+        }
+        
+        select option:hover,
+        select option:focus,
+        select option:checked {
+            background-color: rgba(59, 130, 246, 0.8) !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-2 sm:p-4 lg:p-6">
+    <div class="max-w-xs sm:max-w-md lg:max-w-lg xl:max-w-2xl mx-auto space-y-3 sm:space-y-4">
+        
+        <!-- Header -->
+        <div class="glass-effect bg-white/10 rounded-2xl sm:rounded-3xl p-3 sm:p-4 lg:p-6 border border-white/20">
+            <div class="flex justify-between items-center mb-3 sm:mb-4">
+                <div class="flex items-center space-x-1.5 sm:space-x-2">
+                    <i data-lucide="headphones" class="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white"></i>
+                    <h1 class="text-lg sm:text-xl lg:text-2xl font-bold text-white">Аудиоплеер</h1>
+                </div>
+                <div class="flex space-x-0.5 sm:space-x-1">
+                    <button onclick="openModal('recommendationsModal')" class="p-1 sm:p-1.5 bg-white/20 rounded-full border border-white/30 hover:bg-white/30 transition-all relative" title="Рекомендации">
+                        <i data-lucide="lightbulb" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white"></i>
+                        <div id="recommendationsBadge" class="absolute -top-0.5 -right-0.5 bg-blue-400 text-white text-xs rounded-full w-2.5 h-2.5 sm:w-3 sm:h-3 flex items-center justify-center font-bold text-[8px] sm:text-[10px] hidden"></div>
+                    </button>
+                    <button onclick="openModal('achievementsModal')" class="p-1 sm:p-1.5 bg-white/20 rounded-full border border-white/30 hover:bg-white/30 transition-all relative" title="Достижения">
+                        <i data-lucide="trophy" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white"></i>
+                        <div id="achievementsBadge" class="absolute -top-0.5 -right-0.5 bg-yellow-400 text-black text-xs rounded-full w-2.5 h-2.5 sm:w-3 sm:h-3 flex items-center justify-center font-bold text-[8px] sm:text-[10px] hidden"></div>
+                    </button>
+                    <button onclick="openModal('bookmarksModal')" class="p-1 sm:p-1.5 bg-white/20 rounded-full border border-white/30 hover:bg-white/30 transition-all" title="Закладки">
+                        <i data-lucide="bookmark-check" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white"></i>
+                    </button>
+                    <button onclick="openModal('addModal')" class="p-1 sm:p-1.5 bg-white/20 rounded-full border border-white/30 hover:bg-white/30 transition-all" title="Добавить книгу">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white"></i>
+                    </button>
+                    <button onclick="openModal('settingsModal')" class="p-1 sm:p-1.5 bg-white/20 rounded-full border border-white/30 hover:bg-white/30 transition-all" title="Настройки">
+                        <i data-lucide="settings" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current Book Player -->
+            <div id="playerSection" class="hidden">
+                <div class="text-center mb-4 sm:mb-6">
+                    <img id="bookCover" class="w-16 h-24 sm:w-20 sm:h-28 lg:w-24 lg:h-32 mx-auto mb-2 sm:mb-3 rounded-lg sm:rounded-xl object-cover shadow-lg hidden">
+                    <h2 id="bookTitle" class="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1 px-2"></h2>
+                    <p id="bookAuthor" class="text-white/70 text-sm lg:text-base mb-1 px-2"></p>
+                    
+                    <!-- Chapter selector -->
+                    <div class="flex items-center justify-center space-x-2 mb-4">
+                        <select id="chapterSelect" class="bg-white/20 border border-white/30 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/50">
+                        </select>
+                        <button onclick="createBookmark()" class="p-2 bg-yellow-500/30 rounded-lg border border-yellow-300/50 hover:bg-yellow-500/40 transition-all" title="Сохранить закладку">
+                            <i data-lucide="bookmark" class="w-4 h-4 text-yellow-200"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Series Navigation -->
+                    <div id="seriesNavigation" class="hidden mb-4">
+                        <div class="flex justify-center items-center space-x-2 px-2">
+                            <button id="prevBookBtn" onclick="goToPrevBookInSeries()" class="flex-1 bg-white/10 border border-white/20 rounded-lg py-2 px-3 text-white text-xs disabled:opacity-50 hover:bg-white/20 transition-all flex items-center justify-center space-x-1" title="Предыдущая книга в серии">
+                                <span>⬅️</span>
+                                <span>Пред. книга</span>
+                            </button>
+                            
+                            <div class="text-center px-2">
+                                <div class="text-white/60 text-xs">Серия</div>
+                                <div id="currentSeriesName" class="text-white text-sm font-medium"></div>
+                            </div>
+                            
+                            <button id="nextBookBtn" onclick="goToNextBookInSeries()" class="flex-1 bg-white/10 border border-white/20 rounded-lg py-2 px-3 text-white text-xs disabled:opacity-50 hover:bg-white/20 transition-all flex items-center justify-center space-x-1" title="Следующая книга в серии">
+                                <span>След. книга</span>
+                                <span>➡️</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="mb-3 sm:mb-4 px-2">
+                        <div id="progressBar" class="w-full bg-white/20 rounded-full h-2 sm:h-2.5 cursor-pointer">
+                            <div id="progressFill" class="bg-white h-2 sm:h-2.5 rounded-full transition-all" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs sm:text-sm text-white/80 mt-1 sm:mt-2">
+                            <span id="currentTime">0:00</span>
+                            <span id="duration">0:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="flex justify-center items-center space-x-2 sm:space-x-3 mb-2 sm:mb-0 px-2">
+                        <button onclick="prevChapter()" id="prevBtn" class="p-2 sm:p-3 bg-white/20 rounded-full disabled:opacity-50 hover:bg-white/30 transition-all">
+                            <i data-lucide="skip-back" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                        </button>
+
+                        <button onclick="skipTime(-10)" class="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-all">
+                            <span class="text-white text-xs font-medium">-10</span>
+                        </button>
+
+                        <button onclick="togglePlay()" id="playBtn" class="p-3 sm:p-4 bg-white/30 rounded-full hover:bg-white/40 transition-all">
+                            <i data-lucide="play" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
+                        </button>
+
+                        <button onclick="skipTime(10)" class="p-2 bg-white/20 rounded-full hover:bg-white/30 transition-all">
+                            <span class="text-white text-xs font-medium">+10</span>
+                        </button>
+
+                        <button onclick="nextChapter()" id="nextBtn" class="p-2 sm:p-3 bg-white/20 rounded-full disabled:opacity-50 hover:bg-white/30 transition-all">
+                            <i data-lucide="skip-forward" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                        </button>
+                    </div>
+
+                    <!-- Volume and Speed -->
+                    <div class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 mt-3 sm:mt-4 px-2">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="volume-2" class="w-4 h-4 text-white"></i>
+                            <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" class="w-20">
+                            <span id="volumeDisplay" class="text-white text-xs w-8 text-center">100%</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="clock" class="w-4 h-4 text-white"></i>
+                            <select id="speedSelect" class="bg-white/20 border border-white/30 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-2 focus:ring-white/50">
+                                <option value="0.5" style="background-color: rgba(30, 41, 59, 0.95); color: white;">0.5x</option>
+                                <option value="0.75" style="background-color: rgba(30, 41, 59, 0.95); color: white;">0.75x</option>
+                                <option value="1" selected style="background-color: rgba(30, 41, 59, 0.95); color: white;">1x</option>
+                                <option value="1.25" style="background-color: rgba(30, 41, 59, 0.95); color: white;">1.25x</option>
+                                <option value="1.5" style="background-color: rgba(30, 41, 59, 0.95); color: white;">1.5x</option>
+                                <option value="2" style="background-color: rgba(30, 41, 59, 0.95); color: white;">2x</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="text-center py-6 sm:py-8">
+                <i data-lucide="music" class="w-12 h-12 sm:w-16 sm:h-16 text-white/30 mx-auto mb-3 sm:mb-4"></i>
+                <p class="text-white/60 mb-1 sm:mb-2 text-sm sm:text-base">Выберите аудиокнигу</p>
+                <p class="text-white/40 text-xs sm:text-sm">или добавьте новую</p>
+            </div>
+        </div>
+
+        <!-- Library -->
+        <div class="glass-effect bg-white/10 rounded-2xl sm:rounded-3xl p-3 sm:p-4 lg:p-6 border border-white/20">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i data-lucide="music" class="w-5 h-5 mr-2"></i>
+                    <span id="libraryTitle">Библиотека (0)</span>
+                </h3>
+                <div class="flex space-x-2">
+                    <button onclick="toggleSeriesView()" id="seriesViewBtn" class="p-2 rounded-lg border transition-all bg-white/10 border-white/20 text-white/60 hover:bg-white/20" title="Показать серии">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search and Filters -->
+            <div id="searchFilters" class="space-y-3 mb-4">
+                <!-- Search -->
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/60"></i>
+                    <input type="text" id="searchInput" placeholder="Поиск книг и серий..." class="w-full bg-white/20 border border-white/30 rounded-xl pl-10 pr-10 py-2 text-white placeholder-white/60 focus:outline-none">
+                    <button onclick="clearSearch()" id="clearSearchBtn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors hidden">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Series Filter -->
+                <div id="seriesFilter" class="flex space-x-2 overflow-x-auto pb-2 hidden">
+                    <button onclick="filterBySeries(null)" class="px-3 py-1.5 rounded-lg border text-xs whitespace-nowrap transition-all bg-white/30 border-white/50 text-white" id="allBooksBtn">
+                        Все книги
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Books list -->
+            <div id="booksList" class="space-y-2 sm:space-y-3">
+                <div id="emptyLibrary" class="text-center py-6 sm:py-8">
+                    <p class="text-white/60 mb-3 sm:mb-4 text-sm sm:text-base">Библиотека пуста</p>
+                    <div class="bg-blue-500/20 border border-blue-300/30 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-left">
+                        <h4 class="text-white font-medium mb-2 text-sm sm:text-base">💡 Как добавить:</h4>
+                        <div class="text-white/90 text-xs sm:text-sm space-y-1">
+                            <p>1. Нажмите кнопку "+" в шапке</p>
+                            <p>2. Заполните название и автора</p>
+                            <p>3. Добавьте ссылки на MP3 файлы</p>
+                            <p>4. Каждая ссылка = отдельная глава</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Book Modal -->
+    <div id="addModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-effect bg-white/20 rounded-3xl p-6 w-full max-w-md border border-white/30 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white">Добавить книгу</h3>
+                <button onclick="closeModal('addModal')" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <input type="text" id="newBookTitle" placeholder="Название книги" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                <input type="text" id="newBookAuthor" placeholder="Автор" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                <input type="url" id="newBookCover" placeholder="Обложка (URL)" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <input type="text" id="newBookSeries" placeholder="Серия (необязательно)" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="number" id="newBookSeriesOrder" placeholder="№" min="1" value="1" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none text-center">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="text-white/80 text-sm mb-2 block">Главы:</label>
+                    
+                    <div class="mb-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                            <div class="relative">
+                                <input
+                                    type="file"
+                                    accept=".mp3,audio/mpeg,audio/mp3"
+                                    multiple
+                                    id="massUpload"
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <label
+                                    for="massUpload"
+                                    class="w-full bg-green-500/20 border border-green-400/30 rounded-xl px-3 py-2.5 text-white hover:bg-green-500/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                                >
+                                    <i data-lucide="upload" class="w-4 h-4"></i>
+                                    <span class="text-xs">MP3 файлы</span>
+                                </label>
+                            </div>
+
+                            <div
+                                id="dropZone"
+                                class="bg-blue-500/20 border-2 border-dashed border-blue-400/30 rounded-xl px-3 py-2.5 text-white hover:bg-blue-500/30 transition-all flex items-center justify-center space-x-2"
+                            >
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span class="text-xs">Перетащить</span>
+                            </div>
+
+                            <button
+                                onclick="toggleBulkLinks()"
+                                class="bg-purple-500/20 border border-purple-400/30 rounded-xl px-3 py-2.5 text-white hover:bg-purple-500/30 transition-all flex items-center justify-center space-x-2"
+                            >
+                                <i data-lucide="link" class="w-4 h-4"></i>
+                                <span class="text-xs">Ссылки</span>
+                            </button>
+                        </div>
+
+                        <div id="bulkLinksContainer" class="mb-3 hidden">
+                            <textarea
+                                id="bulkLinksText"
+                                placeholder="Вставьте ссылки на главы (каждая ссылка с новой строки):
+https://example.com/chapter1.mp3
+https://example.com/chapter2.mp3
+..."
+                                class="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400/50 text-sm resize-none"
+                                rows="4"
+                            ></textarea>
+                            <div class="flex space-x-2 mt-2">
+                                <button
+                                    onclick="processBulkLinks()"
+                                    class="flex-1 bg-purple-500/30 border border-purple-400/40 rounded-lg px-3 py-2 text-white hover:bg-purple-500/40 transition-all text-sm flex items-center justify-center space-x-2"
+                                >
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                    <span>Загрузить ссылки</span>
+                                </button>
+                                <button
+                                    onclick="clearBulkLinks()"
+                                    class="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white/60 hover:text-white text-sm"
+                                >
+                                    Очистить
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="uploadProgress" class="bg-white/10 border border-white/20 rounded-xl p-3 mb-3 hidden">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-white text-sm">Загрузка файлов...</span>
+                                <span id="progressText" class="text-white text-sm">0%</span>
+                            </div>
+                            <div class="w-full bg-white/20 rounded-full h-2">
+                                <div
+                                    id="progressBar"
+                                    class="bg-green-400 h-2 rounded-full transition-all duration-300"
+                                    style="width: 0%"
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-purple-500/10 border border-purple-400/30 rounded-xl p-3 mb-4">
+                            <p class="text-purple-200 text-xs leading-relaxed">
+                                💡 <strong>Способы добавления глав:</strong><br/>
+                                • <strong>MP3 файлы:</strong> Выберите или перетащите локальные файлы<br/>
+                                • <strong>Ссылки:</strong> Вставьте несколько URL в текстовое поле<br/>
+                                • <strong>Вручную:</strong> Добавляйте ссылки по одной<br/>
+                                • Названия глав извлекаются автоматически
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-white/70 text-sm">Или добавьте ссылки вручную:</span>
+                        </div>
+                        
+                        <div id="chaptersContainer">
+                            <div class="chapter-input flex space-x-2 mb-2">
+                                <input type="url" placeholder="Глава 1 (MP3 ссылка)" class="flex-1 bg-white/20 border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                                <button onclick="removeChapter(this)" class="p-2 text-white/60 hover:text-red-300 opacity-0 pointer-events-none">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button onclick="addChapter()" class="text-white/80 hover:text-white text-sm bg-white/10 border border-white/20 rounded-lg px-3 py-2 w-full">
+                            + Добавить главу вручную
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3 pt-4">
+                    <button onclick="closeModal('addModal')" class="flex-1 bg-white/20 border border-white/30 rounded-2xl py-3 text-white hover:bg-white/30 transition-all">
+                        Отмена
+                    </button>
+                    <button onclick="addBook()" class="flex-1 bg-white/30 border border-white/40 rounded-2xl py-3 text-white hover:bg-white/40 transition-all">
+                        Добавить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-effect bg-white/20 rounded-3xl p-6 w-full max-w-md border border-white/30">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white">Настройки</h3>
+                <button onclick="closeModal('settingsModal')" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <button onclick="exportData()" class="w-full bg-green-500/20 border border-green-400/30 rounded-2xl px-4 py-3 text-white hover:bg-green-500/30 transition-all flex items-center justify-center space-x-2">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span>Экспорт библиотеки</span>
+                </button>
+
+                <div class="relative">
+                    <input type="file" id="importFile" accept=".json" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="w-full bg-blue-500/20 border border-blue-400/30 rounded-2xl px-4 py-3 text-white hover:bg-blue-500/30 transition-all flex items-center justify-center space-x-2 cursor-pointer">
+                        <i data-lucide="upload" class="w-5 h-5"></i>
+                        <span>Импорт библиотеки</span>
+                    </div>
+                </div>
+
+                <button onclick="openLinkCollector()" class="w-full bg-purple-500/20 border border-purple-400/30 rounded-2xl px-4 py-3 text-white hover:bg-purple-500/30 transition-all flex items-center justify-center space-x-2">
+                    <i data-lucide="link" class="w-5 h-5"></i>
+                    <span>Сборщик ссылок</span>
+                </button>
+
+                <button onclick="clearAllData()" class="w-full bg-red-500/20 border border-red-400/40 rounded-2xl px-4 py-3 text-red-200 hover:bg-red-500/30 transition-all flex items-center justify-center space-x-2">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <span>Очистить все данные</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Book Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-effect bg-white/20 rounded-3xl p-6 w-full max-w-md border border-white/30 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i data-lucide="edit-3" class="w-5 h-5 mr-2"></i>
+                    Редактировать книгу
+                </h3>
+                <button onclick="closeModal('editModal')" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <input type="text" id="editBookTitle" placeholder="Название книги" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                <input type="text" id="editBookAuthor" placeholder="Автор" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                <input type="url" id="editBookCover" placeholder="Обложка (URL)" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <input type="text" id="editBookSeries" placeholder="Серия (необязательно)" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="number" id="editBookSeriesOrder" placeholder="№" min="1" value="1" class="w-full bg-white/20 border border-white/30 rounded-2xl px-4 py-3 text-white placeholder-white/60 focus:outline-none text-center">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-white/80 text-sm mb-2 block">Главы:</label>
+                    <div id="editChaptersContainer"></div>
+                    <button onclick="addEditChapter()" class="w-full border-2 border-dashed border-white/30 rounded-xl py-3 text-white/70 hover:text-white hover:border-white/50 transition-all text-sm">
+                        + Добавить главу
+                    </button>
+                </div>
+
+                <div class="flex space-x-3 pt-4">
+                    <button onclick="closeModal('editModal')" class="flex-1 bg-white/20 border border-white/30 rounded-2xl py-3 text-white hover:bg-white/30 transition-all">
+                        Отмена
+                    </button>
+                    <button onclick="saveEditedBook()" class="flex-1 bg-blue-500/30 border border-blue-300/40 rounded-2xl py-3 text-white hover:bg-blue-500/40 transition-all">
+                        Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Recommendations Modal -->
+    <div id="recommendationsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-effect bg-white/20 rounded-3xl p-6 w-full max-w-2xl border border-white/30 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="lightbulb" class="w-6 h-6 text-blue-400"></i>
+                    <h3 class="text-xl font-bold text-white">Рекомендации</h3>
+                </div>
+                <button onclick="closeModal('recommendationsModal')" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Statistics -->
+            <div class="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-2xl p-4 mb-6">
+                <h4 class="text-white font-semibold mb-3 flex items-center">
+                    <i data-lucide="trending-up" class="w-5 h-5 mr-2"></i>
+                    Ваша статистика
+                </h4>
+                <div id="statsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div id="totalBooksCount" class="text-2xl font-bold text-white">0</div>
+                        <div class="text-white/70 text-xs">Книг в библиотеке</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="completedBooksCount" class="text-2xl font-bold text-green-400">0</div>
+                        <div class="text-white/70 text-xs">Прослушано</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="inProgressBooksCount" class="text-2xl font-bold text-yellow-400">0</div>
+                        <div class="text-white/70 text-xs">В процессе</div>
+                    </div>
+                    <div class="text-center">
+                        <div id="unlistenedBooksCount" class="text-2xl font-bold text-blue-400">0</div>
+                        <div class="text-white/70 text-xs">Не начато</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-white/80 mb-2">
+                        <span>Завершено книг</span>
+                        <span id="completionRate">0%</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-2">
+                        <div id="completionBar" class="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recommendationsList" class="space-y-4">
+                <div id="emptyRecommendations" class="text-center py-8">
+                    <i data-lucide="lightbulb" class="w-16 h-16 text-white/20 mx-auto mb-4"></i>
+                    <p class="text-white/60 mb-2">Пока нет рекомендаций</p>
+                    <p class="text-white/40 text-sm">Послушайте несколько книг, чтобы получить персональные рекомендации!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements Modal -->
+    <div id="achievementsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-effect bg-white/20 rounded-3xl p-6 w-full max-w-2xl border border-white/30 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="trophy" class="w-6 h-6 text-yellow-400"></i>
+                    <h3 class="text-xl font-bold text-white">Достижения</h3>
+                </div>
+                <button onclick="closeModal('achievementsModal')" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="bg-white/10 border border-white/20 rounded-2xl p-4 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-white/80">Прогресс достижений</span>
+                    <span id="achievementStats" class="text-white font-bold">0/50</span>
+                </div>
+                <div class="w-full bg-white/20 rounded-full h-3">
+                    <div id="achievementProgress" class="bg-gradient-to-r from-yellow-400 to-yellow-500 h-3 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                <div class="text-center mt-2">
+                    <span id="achievementPercentage" class="text-yellow-400 font-bold text-lg">0%</span>
+                    <span class="text-white/60 text-sm ml-1">завершено</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h4 class="text-white font-semibold flex items-center">
+                    <i data-lucide="medal" class="w-5 h-5 mr-2"></i>
+                    Разблокированные
+                </h4>
+                
+                <div id="unlockedAchievements" class="space-y-3">
+                    <div id="emptyAchievements" class="text-center py-8">
+                        <i data-lucide="trophy" class="w-16 h-16 text-white/20 mx-auto mb-4"></i>
+                        <p class="text-white/60">Достижений пока нет</p>
+                        <p class="text-white/40 text-sm">Слушайте книги, чтобы разблокировать награды!</p>
+                    </div>
+                </div>
+
+                <h4 class="text-white font-semibold flex items-center mt-6">
+                    <i data-lucide="target" class="w-5 h-5 mr-2"></i>
+                    Заблокированные
+                </h4>
+                
+                <div id="lockedAchievements" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookmarks Modal -->
+    <div id="bookmarksModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-effect bg-white/20 rounded-3xl p-6 w-full max-w-md border border-white/30 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="bookmark-check" class="w-6 h-6 text-blue-400"></i>
+                    <h3 class="text-xl font-bold text-white">Закладки</h3>
+                </div>
+                <button onclick="closeModal('bookmarksModal')" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div id="bookmarksList" class="space-y-3">
+                <div id="emptyBookmarks" class="text-center py-8">
+                    <i data-lucide="bookmark-check" class="w-12 h-12 text-white/30 mx-auto mb-3"></i>
+                    <p class="text-white/60">Нет закладок</p>
+                    <p class="text-white/40 text-sm mt-1">Закладки сохраняются автоматически</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievement Notification -->
+    <div id="achievementNotification" class="fixed top-4 right-4 z-60 hidden">
+        <div class="bg-gradient-to-r from-yellow-400/30 to-orange-500/30 backdrop-blur-lg rounded-2xl p-4 border border-yellow-400/40 max-w-sm shadow-2xl">
+            <div class="flex items-center space-x-3">
+                <div id="achievementIcon" class="text-3xl">🏆</div>
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i>
+                        <span class="text-white font-bold text-sm">Достижение разблокировано!</span>
+                    </div>
+                    <h4 id="achievementName" class="text-white font-semibold"></h4>
+                    <p id="achievementDescription" class="text-white/80 text-sm"></p>
+                    <span id="achievementRarity" class="text-white/60 text-xs"></span>
+                </div>
+                <button onclick="hideAchievementNotification()" class="text-white/60 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audioPlayer" preload="metadata"></audio>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global state
+        let audiobooks = [];
+        let currentBook = null;
+        let currentChapter = 0;
+        let isPlaying = false;
+        let bookmarks = {};
+        let achievements = [];
+        let editingBook = null;
+        let showSeriesView = false;
+        let selectedSeries = null;
+        let searchQuery = '';
+        
+        // Safe localStorage wrapper
+        function safeLocalStorage() {
+            try {
+                return typeof localStorage !== 'undefined' ? localStorage : null;
+            } catch (e) {
+                console.warn('localStorage not available:', e);
+                return null;
+            }
+        }
+        
+        // Safe storage functions
+        function getStorageItem(key, defaultValue = null) {
+            const storage = safeLocalStorage();
+            if (!storage) return defaultValue;
+            
+            try {
+                const item = storage.getItem(key);
+                return item ? JSON.parse(item) : defaultValue;
+            } catch (e) {
+                console.warn('Error reading from storage:', e);
+                return defaultValue;
+            }
+        }
+        
+        function setStorageItem(key, value) {
+            const storage = safeLocalStorage();
+            if (!storage) return false;
+            
+            try {
+                storage.setItem(key, JSON.stringify(value));
+                return true;
+            } catch (e) {
+                console.warn('Error writing to storage:', e);
+                return false;
+            }
+        }
+
+        // Initialize data from localStorage
+        function initializeData() {
+            audiobooks = getStorageItem('audiobooks', []);
+            bookmarks = getStorageItem('bookmarks', {});
+            achievements = getStorageItem('achievements', []);
+        }
+        
+        const audio = document.getElementById('audioPlayer');
+        
+        // DOM elements
+        const playerSection = document.getElementById('playerSection');
+        const emptyState = document.getElementById('emptyState');
+        const bookTitle = document.getElementById('bookTitle');
+        const bookAuthor = document.getElementById('bookAuthor');
+        const bookCover = document.getElementById('bookCover');
+        const chapterSelect = document.getElementById('chapterSelect');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const durationSpan = document.getElementById('duration');
+        const playBtn = document.getElementById('playBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeDisplay = document.getElementById('volumeDisplay');
+        const speedSelect = document.getElementById('speedSelect');
+        const searchInput = document.getElementById('searchInput');
+        const booksList = document.getElementById('booksList');
+        const libraryTitle = document.getElementById('libraryTitle');
+        const emptyLibrary = document.getElementById('emptyLibrary');
+
+        // Utility functions
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function saveData() {
+            setStorageItem('audiobooks', audiobooks);
+            setStorageItem('bookmarks', bookmarks);
+            setStorageItem('achievements', achievements);
+        }
+
+        function safeStringTrim(value) {
+            if (value === null || value === undefined) return '';
+            if (typeof value !== 'string') {
+                console.warn('Attempting to trim non-string value:', typeof value, value);
+                return String(value).trim();
+            }
+            return value.trim();
+        }
+
+        function showSuccess(message) {
+            alert('✅ ' + message);
+        }
+
+        function showError(message) {
+            alert('❌ ' + message);
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) {
+                console.error('Modal not found:', modalId);
+                return;
+            }
+            modal.classList.remove('hidden');
+            
+            // Load content when opening modals
+            switch(modalId) {
+                case 'bookmarksModal':
+                    renderBookmarks();
+                    break;
+                case 'recommendationsModal':
+                    renderRecommendations();
+                    break;
+                case 'achievementsModal':
+                    renderAchievements();
+                    break;
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            if (modalId === 'addModal') {
+                resetAddForm();
+            }
+        }
+
+        // Audio functions
+        function selectBook(bookId) {
+            currentBook = audiobooks.find(book => book.id === bookId);
+            currentChapter = 0;
+            updatePlayer();
+            loadChapter();
+        }
+
+        function updatePlayer() {
+            if (!currentBook) {
+                playerSection.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                document.getElementById('seriesNavigation').classList.add('hidden');
+                return;
+            }
+
+            playerSection.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            bookTitle.textContent = currentBook.title;
+            bookAuthor.textContent = currentBook.author;
+            
+            if (currentBook.cover) {
+                bookCover.src = currentBook.cover;
+                bookCover.classList.remove('hidden');
+            } else {
+                bookCover.classList.add('hidden');
+            }
+
+            // Update chapter select
+            chapterSelect.innerHTML = '';
+            currentBook.chapters.forEach((chapter, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${index + 1}. ${chapter.title}`;
+                chapterSelect.appendChild(option);
+            });
+            chapterSelect.value = currentChapter;
+
+            // Update series navigation
+            updateSeriesNavigation();
+
+            updateControls();
+        }
+
+        function updateSeriesNavigation() {
+            const seriesNav = document.getElementById('seriesNavigation');
+            const seriesName = document.getElementById('currentSeriesName');
+            const prevBtn = document.getElementById('prevBookBtn');
+            const nextBtn = document.getElementById('nextBookBtn');
+
+            if (currentBook && currentBook.series) {
+                seriesNav.classList.remove('hidden');
+                seriesName.textContent = `${currentBook.series} #${currentBook.seriesOrder || 1}`;
+
+                const prevBook = getPrevBookInSeries(currentBook);
+                const nextBook = getNextBookInSeries(currentBook);
+
+                prevBtn.disabled = !prevBook;
+                nextBtn.disabled = !nextBook;
+            } else {
+                seriesNav.classList.add('hidden');
+            }
+        }
+
+        function updateControls() {
+            document.getElementById('prevBtn').disabled = currentChapter === 0;
+            document.getElementById('nextBtn').disabled = currentChapter === currentBook.chapters.length - 1;
+        }
+
+        function loadChapter() {
+            if (!currentBook || !currentBook.chapters[currentChapter]) return;
+            
+            audio.pause();
+            isPlaying = false;
+            updatePlayButton();
+            
+            const chapter = currentBook.chapters[currentChapter];
+            audio.src = chapter.url;
+            audio.load();
+            
+            // Restore saved position
+            const savedTime = getSavedTime();
+            if (savedTime > 0) {
+                audio.addEventListener('loadedmetadata', () => {
+                    if (savedTime < audio.duration) {
+                        audio.currentTime = savedTime;
+                    }
+                }, { once: true });
+            }
+        }
+
+        function togglePlay() {
+            if (!currentBook) return;
+            
+            if (isPlaying) {
+                audio.pause();
+            } else {
+                audio.play().catch(error => {
+                    console.error('Playback error:', error);
+                    showError('Ошибка воспроизведения. Проверьте ссылку на файл.');
+                });
+            }
+        }
+
+        function updatePlayButton() {
+            const icon = playBtn.querySelector('i');
+            if (!icon) {
+                console.error('Play button icon not found');
+                return;
+            }
+            if (isPlaying) {
+                icon.setAttribute('data-lucide', 'pause');
+            } else {
+                icon.setAttribute('data-lucide', 'play');
+            }
+            lucide.createIcons();
+        }
+
+        function skipTime(seconds) {
+            if (!audio.src) return;
+            audio.currentTime = Math.max(0, Math.min(audio.currentTime + seconds, audio.duration || 0));
+        }
+
+        function prevChapter() {
+            if (currentChapter > 0) {
+                currentChapter--;
+                chapterSelect.value = currentChapter;
+                loadChapter();
+                updateControls();
+            }
+        }
+
+        function nextChapter() {
+            if (currentChapter < currentBook.chapters.length - 1) {
+                currentChapter++;
+                chapterSelect.value = currentChapter;
+                loadChapter();
+                updateControls();
+            }
+        }
+
+        function seekTo(percentage) {
+            if (!audio.duration) return;
+            audio.currentTime = (percentage / 100) * audio.duration;
+        }
+
+        // Bookmark functions
+        function getSavedTime() {
+            if (!currentBook) return 0;
+            const key = `${currentBook.id}_${currentChapter}`;
+            return bookmarks[key] || 0;
+        }
+
+        function saveProgress() {
+            if (!currentBook || !audio.currentTime) return;
+            const key = `${currentBook.id}_${currentChapter}`;
+            bookmarks[key] = audio.currentTime;
+            saveData();
+        }
+
+        function createBookmark() {
+            if (!currentBook || !audio.currentTime) return;
+            saveProgress();
+            showSuccess(`Закладка сохранена на ${formatTime(audio.currentTime)}`);
+        }
+
+        // Library functions
+        function renderLibrary() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredBooks = audiobooks.filter(book => 
+                book.title.toLowerCase().includes(searchTerm) ||
+                book.author.toLowerCase().includes(searchTerm)
+            );
+
+            libraryTitle.textContent = `Библиотека (${filteredBooks.length})`;
+
+            if (filteredBooks.length === 0) {
+                if (searchTerm) {
+                    booksList.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-white/60 mb-2">Книги не найдены</p>
+                            <button onclick="searchInput.value=''; renderLibrary();" class="text-white/70 hover:text-white text-sm underline">
+                                Показать все книги
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    booksList.innerHTML = emptyLibrary.outerHTML;
+                }
+                return;
+            }
+
+            booksList.innerHTML = filteredBooks.map(book => `
+                <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl border cursor-pointer transition-all ${
+                    currentBook?.id === book.id ? 'bg-white/30 border-white/50' : 'bg-white/20 border-white/30 hover:bg-white/25'
+                }" onclick="selectBook(${book.id})">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-2 sm:space-x-3 flex-1 min-w-0">
+                            <div class="flex-shrink-0">
+                                ${book.cover ? 
+                                    `<img src="${book.cover}" alt="${book.title}" class="w-12 h-16 sm:w-16 sm:h-20 rounded-lg sm:rounded-xl object-cover shadow-lg border border-white/20" onerror="this.style.display='none'; this.nextSibling.style.display='flex';">` : 
+                                    ''}
+                                <div class="w-12 h-16 sm:w-16 sm:h-20 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/30 border border-white/30 flex flex-col items-center justify-center ${book.cover ? 'hidden' : 'flex'}">
+                                    <i data-lucide="music" class="w-4 h-4 sm:w-6 sm:h-6 text-white/60 mb-1"></i>
+                                    <span class="text-white/50 text-xs text-center px-1 leading-tight">
+                                        ${book.title.substring(0, 8)}...
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-semibold text-white truncate text-sm sm:text-base line-clamp-2 flex-1 mr-2">
+                                    ${book.title}
+                                </h4>
+                                <p class="text-white/70 text-xs sm:text-sm mb-1 truncate">${book.author}</p>
+                                <div class="flex items-center text-xs text-white/60">
+                                    <span>${book.chapters.length} глав</span>
+                                    ${getSavedTime() > 0 && currentBook?.id === book.id ? 
+                                        '<span class="flex items-center ml-2"><i data-lucide="bookmark-check" class="w-3 h-3 mr-1 text-yellow-400"></i>В процессе</span>' : 
+                                        ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col space-y-1">
+                            <button onclick="event.stopPropagation(); editBook(${book.id})" class="p-1 text-white/60 hover:text-blue-300 transition-colors" title="Редактировать книгу">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteBook(${book.id})" class="p-1 text-white/60 hover:text-red-300 transition-colors" title="Удалить книгу">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+        }
+
+        function deleteBook(bookId) {
+            if (!confirm('Удалить эту аудиокнигу?')) return;
+            
+            audiobooks = audiobooks.filter(book => book.id !== bookId);
+            if (currentBook?.id === bookId) {
+                currentBook = null;
+                updatePlayer();
+            }
+            saveData();
+            renderLibrary();
+            showSuccess('Книга удалена!');
+        }
+
+        // Add book functions
+        function addChapter() {
+            const container = document.getElementById('chaptersContainer');
+            const chapterCount = container.children.length + 1;
+            const div = document.createElement('div');
+            div.className = 'chapter-input flex space-x-2 mb-2';
+            div.innerHTML = `
+                <input type="url" placeholder="Глава ${chapterCount} (MP3 ссылка)" class="flex-1 bg-white/20 border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                <button onclick="removeChapter(this)" class="p-2 text-white/60 hover:text-red-300">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            lucide.createIcons();
+            updateChapterButtons();
+        }
+
+        function removeChapter(button) {
+            button.parentElement.remove();
+            updateChapterNumbers();
+            updateChapterButtons();
+        }
+
+        function updateChapterNumbers() {
+            const inputs = document.querySelectorAll('.chapter-input input');
+            inputs.forEach((input, index) => {
+                input.placeholder = `Глава ${index + 1} (MP3 ссылка)`;
+            });
+        }
+
+        function updateChapterButtons() {
+            const buttons = document.querySelectorAll('.chapter-input button');
+            buttons.forEach((button, index) => {
+                if (buttons.length === 1) {
+                    button.classList.add('opacity-0', 'pointer-events-none');
+                } else {
+                    button.classList.remove('opacity-0', 'pointer-events-none');
+                }
+            });
+        }
+
+        function resetAddForm() {
+            document.getElementById('newBookTitle').value = '';
+            document.getElementById('newBookAuthor').value = '';
+            document.getElementById('newBookCover').value = '';
+            
+            const container = document.getElementById('chaptersContainer');
+            container.innerHTML = `
+                <div class="chapter-input flex space-x-2 mb-2">
+                    <input type="url" placeholder="Глава 1 (MP3 ссылка)" class="flex-1 bg-white/20 border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                    <button onclick="removeChapter(this)" class="p-2 text-white/60 hover:text-red-300 opacity-0 pointer-events-none">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function addBook() {
+            const title = document.getElementById('newBookTitle').value.trim();
+            const author = document.getElementById('newBookAuthor').value.trim() || 'Неизвестный автор';
+            const cover = document.getElementById('newBookCover').value.trim();
+            
+            if (!title) {
+                showError('Введите название книги');
+                return;
+            }
+
+            const chapterInputs = document.querySelectorAll('.chapter-input input');
+            const chapters = [];
+            
+            chapterInputs.forEach((input, index) => {
+                const url = input.value.trim();
+                if (url) {
+                    chapters.push({
+                        title: `Глава ${index + 1}`,
+                        url: url
+                    });
+                }
+            });
+
+            if (chapters.length === 0) {
+                showError('Добавьте хотя бы одну главу');
+                return;
+            }
+
+            const book = {
+                id: Date.now(),
+                title: title,
+                author: author,
+                cover: cover || null,
+                chapters: chapters,
+                addedDate: new Date().toISOString()
+            };
+
+            audiobooks.push(book);
+            saveData();
+            renderLibrary();
+            closeModal('addModal');
+            showSuccess('Книга добавлена!');
+        }
+
+        // Export/Import functions
+        function exportData() {
+            const data = {
+                audiobooks: audiobooks,
+                bookmarks: bookmarks,
+                exportDate: new Date().toISOString(),
+                version: "1.0"
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `audiobooks_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            setStorageItem('exported_library', 'true');
+            showSuccess('Библиотека экспортирована!');
+        }
+
+        function clearAllData() {
+            if (!confirm('⚠️ ВНИМАНИЕ!\n\nЭто действие полностью удалит все аудиокниги и закладки!\n\nВы уверены?')) return;
+            if (!confirm('Последнее предупреждение! Все данные будут безвозвратно потеряны.\n\nПродолжить?')) return;
+            
+            audiobooks = [];
+            bookmarks = {};
+            currentBook = null;
+            
+            audio.pause();
+            isPlaying = false;
+            
+            localStorage.clear();
+            
+            updatePlayer();
+            renderLibrary();
+            closeModal('settingsModal');
+            
+            showSuccess('Все данные очищены!');
+        }
+
+        // Event listeners
+        audio.addEventListener('play', () => {
+            isPlaying = true;
+            updatePlayButton();
+        });
+
+        audio.addEventListener('pause', () => {
+            isPlaying = false;
+            updatePlayButton();
+            saveProgress();
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                progressFill.style.width = progress + '%';
+                currentTimeSpan.textContent = formatTime(audio.currentTime);
+                
+                // Auto-save progress every 10 seconds
+                if (Math.floor(audio.currentTime) % 10 === 0) {
+                    saveProgress();
+                }
+            }
+        });
+
+        audio.addEventListener('loadedmetadata', () => {
+            durationSpan.textContent = formatTime(audio.duration);
+        });
+
+        audio.addEventListener('ended', () => {
+            if (currentChapter < currentBook.chapters.length - 1) {
+                nextChapter();
+            } else {
+                isPlaying = false;
+                updatePlayButton();
+            }
+        });
+
+        audio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+            showError('Ошибка загрузки аудио. Проверьте ссылку на файл.');
+            isPlaying = false;
+            updatePlayButton();
+        });
+
+        // Progress bar click
+        progressBar.addEventListener('click', (e) => {
+            if (!audio.duration) return;
+            const rect = progressBar.getBoundingClientRect();
+            const percentage = ((e.clientX - rect.left) / rect.width) * 100;
+            seekTo(percentage);
+        });
+
+        // Volume slider
+        volumeSlider.addEventListener('input', () => {
+            const volume = volumeSlider.value;
+            audio.volume = volume;
+            volumeDisplay.textContent = Math.round(volume * 100) + '%';
+        });
+
+        // Speed selector
+        speedSelect.addEventListener('change', () => {
+            audio.playbackRate = speedSelect.value;
+        });
+
+        // Chapter selector
+        chapterSelect.addEventListener('change', () => {
+            currentChapter = parseInt(chapterSelect.value);
+            loadChapter();
+            updateControls();
+        });
+
+        // Search input
+        searchInput.addEventListener('input', renderLibrary);
+
+        // Setup import file handler
+        function setupImportHandler() {
+            const importFileElement = document.getElementById('importFile');
+            if (importFileElement) {
+                importFileElement.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    
+                    if (!data.audiobooks || !Array.isArray(data.audiobooks)) {
+                        throw new Error('Неверный формат файла');
+                    }
+
+                    const importChoice = confirm(
+                        `Найдено ${data.audiobooks.length} книг.\n\n` +
+                        'ОК - Заменить текущую библиотеку\n' +
+                        'Отмена - Добавить к существующей библиотеке'
+                    );
+
+                    if (importChoice) {
+                        audiobooks = data.audiobooks;
+                        if (data.bookmarks) bookmarks = data.bookmarks;
+                        showSuccess(`Библиотека заменена! Импортировано ${data.audiobooks.length} книг.`);
+                    } else {
+                        const existingIds = new Set(audiobooks.map(book => book.id));
+                        const newBooks = data.audiobooks.filter(book => !existingIds.has(book.id));
+                        
+                        if (newBooks.length === 0) {
+                            showError('Все книги уже есть в библиотеке!');
+                            return;
+                        }
+
+                        audiobooks.push(...newBooks);
+                        if (data.bookmarks) {
+                            Object.assign(bookmarks, data.bookmarks);
+                        }
+                        showSuccess(`Добавлено ${newBooks.length} новых книг!`);
+                    }
+
+                    saveData();
+                    renderLibrary();
+                    
+                    if (currentBook && !audiobooks.some(book => book.id === currentBook.id)) {
+                        currentBook = null;
+                        updatePlayer();
+                    }
+
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showError('Ошибка импорта! Проверьте формат файла.');
+                }
+            };
+            
+            reader.readAsText(file);
+            e.target.value = '';
+                });
+            }
+        }
+
+        // Series functions
+        function getAllSeries() {
+            const seriesMap = new Map();
+            
+            audiobooks.forEach(book => {
+                if (book && book.series && typeof book.series === 'string' && safeStringTrim(book.series)) {
+                    const seriesName = safeStringTrim(book.series);
+                    if (!seriesMap.has(seriesName)) {
+                        seriesMap.set(seriesName, {
+                            name: seriesName,
+                            books: [],
+                            author: book.author,
+                            totalChapters: 0
+                        });
+                    }
+                    
+                    const series = seriesMap.get(seriesName);
+                    series.books.push(book);
+                    series.totalChapters += book.chapters.length;
+                }
+            });
+            
+            seriesMap.forEach(series => {
+                series.books.sort((a, b) => (a.seriesOrder || 1) - (b.seriesOrder || 1));
+            });
+            
+            return Array.from(seriesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        function getBooksWithoutSeries() {
+            return audiobooks.filter(book => !book.series || !safeStringTrim(book.series));
+        }
+
+        function getNextBookInSeries(book) {
+            if (!book?.series) return null;
+            
+            const seriesBooks = audiobooks
+                .filter(b => b.series === book.series)
+                .sort((a, b) => (a.seriesOrder || 1) - (b.seriesOrder || 1));
+            
+            const currentIndex = seriesBooks.findIndex(b => b.id === book.id);
+            return currentIndex < seriesBooks.length - 1 ? seriesBooks[currentIndex + 1] : null;
+        }
+
+        function getPrevBookInSeries(book) {
+            if (!book?.series) return null;
+            
+            const seriesBooks = audiobooks
+                .filter(b => b.series === book.series)
+                .sort((a, b) => (a.seriesOrder || 1) - (b.seriesOrder || 1));
+            
+            const currentIndex = seriesBooks.findIndex(b => b.id === book.id);
+            return currentIndex > 0 ? seriesBooks[currentIndex - 1] : null;
+        }
+
+        function goToNextBookInSeries() {
+            const nextBook = getNextBookInSeries(currentBook);
+            if (nextBook) {
+                selectBook(nextBook.id);
+            }
+        }
+
+        function goToPrevBookInSeries() {
+            const prevBook = getPrevBookInSeries(currentBook);
+            if (prevBook) {
+                selectBook(prevBook.id);
+            }
+        }
+
+        function toggleSeriesView() {
+            showSeriesView = !showSeriesView;
+            const btn = document.getElementById('seriesViewBtn');
+            const title = document.getElementById('libraryTitle');
+            
+            if (showSeriesView) {
+                btn.classList.add('bg-white/30', 'border-white/50', 'text-white');
+                btn.classList.remove('bg-white/10', 'border-white/20', 'text-white/60');
+                title.textContent = 'Серии книг';
+                renderSeriesView();
+            } else {
+                btn.classList.remove('bg-white/30', 'border-white/50', 'text-white');
+                btn.classList.add('bg-white/10', 'border-white/20', 'text-white/60');
+                title.textContent = `Библиотека (${getFilteredBooks().length})`;
+                renderLibrary();
+            }
+        }
+
+        function renderSeriesView() {
+            const allSeries = getAllSeries();
+            const booksWithoutSeries = getBooksWithoutSeries();
+            
+            if (allSeries.length === 0) {
+                booksList.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="text-4xl mb-4">📚</div>
+                        <p class="text-white/60 mb-2">Серий пока нет</p>
+                        <p class="text-white/40 text-sm">Добавьте серию при создании книги</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let seriesHtml = '';
+            
+            allSeries.forEach(series => {
+                seriesHtml += `
+                    <div class="bg-white/10 border border-white/20 rounded-2xl p-4 mb-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h4 class="text-white font-semibold text-lg flex items-center">
+                                    📚 ${series.name}
+                                </h4>
+                                <p class="text-white/60 text-sm">
+                                    ${series.author} • ${series.books.length} книг • ${series.totalChapters} глав
+                                </p>
+                            </div>
+                            <button onclick="filterBySeries('${series.name}'); toggleSeriesView();" class="bg-white/20 border border-white/30 rounded-lg px-3 py-1 text-white text-xs hover:bg-white/30 transition-all">
+                                Открыть
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            ${series.books.slice(0, 4).map(book => `
+                                <div class="flex items-center space-x-2 p-2 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-all" onclick="selectBook(${book.id}); toggleSeriesView();">
+                                    <div class="flex-shrink-0">
+                                        ${book.cover ? 
+                                            `<img src="${book.cover}" alt="${book.title}" class="w-8 h-10 rounded object-cover" onerror="this.style.display='none'; this.nextSibling.style.display='flex';">` : 
+                                            ''}
+                                        <div class="w-8 h-10 rounded bg-gradient-to-br from-purple-500/30 to-pink-500/30 border border-white/20 flex items-center justify-center ${book.cover ? 'hidden' : 'flex'}">
+                                            <span class="text-white/60 text-xs">#${book.seriesOrder || 1}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-white text-xs font-medium truncate">
+                                            #${book.seriesOrder || 1}. ${book.title}
+                                        </p>
+                                        <p class="text-white/50 text-xs">${book.chapters.length} глав</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${series.books.length > 4 ? `
+                                <div class="flex items-center justify-center p-2 text-white/40 text-xs">
+                                    +${series.books.length - 4} еще...
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (booksWithoutSeries.length > 0) {
+                seriesHtml += `
+                    <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
+                        <h4 class="text-white/70 font-semibold mb-3 flex items-center">
+                            📖 Отдельные книги (${booksWithoutSeries.length})
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            ${booksWithoutSeries.slice(0, 6).map(book => `
+                                <div class="flex items-center space-x-2 p-2 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-all" onclick="selectBook(${book.id}); toggleSeriesView();">
+                                    <div class="flex-shrink-0">
+                                        ${book.cover ? 
+                                            `<img src="${book.cover}" alt="${book.title}" class="w-8 h-10 rounded object-cover" onerror="this.style.display='none'; this.nextSibling.style.display='flex';">` : 
+                                            ''}
+                                        <div class="w-8 h-10 rounded bg-gradient-to-br from-gray-500/30 to-gray-600/30 border border-white/20 flex items-center justify-center ${book.cover ? 'hidden' : 'flex'}">
+                                            <i data-lucide="music" class="w-3 h-3 text-white/60"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-white text-xs font-medium truncate">${book.title}</p>
+                                        <p class="text-white/50 text-xs">${book.chapters.length} глав</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            booksList.innerHTML = seriesHtml;
+            lucide.createIcons();
+        }
+
+        function getFilteredBooks() {
+            let filteredBooks = audiobooks;
+            
+            // Filter by search query
+            if (searchQuery && safeStringTrim(searchQuery)) {
+                const query = searchQuery.toLowerCase();
+                filteredBooks = filteredBooks.filter(book => {
+                    if (!book) return false;
+                    
+                    const titleMatch = book.title && typeof book.title === 'string' 
+                        ? book.title.toLowerCase().includes(query) 
+                        : false;
+                        
+                    const authorMatch = book.author && typeof book.author === 'string'
+                        ? book.author.toLowerCase().includes(query)
+                        : false;
+                        
+                    const seriesMatch = book.series && typeof book.series === 'string'
+                        ? book.series.toLowerCase().includes(query)
+                        : false;
+                        
+                    return titleMatch || authorMatch || seriesMatch;
+                });
+            }
+            
+            // Filter by selected series
+            if (selectedSeries) {
+                filteredBooks = filteredBooks.filter(book => book.series === selectedSeries);
+            }
+            
+            return filteredBooks;
+        }
+
+        function filterBySeries(seriesName) {
+            selectedSeries = selectedSeries === seriesName ? null : seriesName;
+            renderLibrary();
+            updateSeriesFilter();
+        }
+
+        function updateSeriesFilter() {
+            const seriesFilter = document.getElementById('seriesFilter');
+            const allSeries = getAllSeries();
+            
+            if (allSeries.length > 0 && !showSeriesView) {
+                seriesFilter.classList.remove('hidden');
+                
+                let filterHtml = `
+                    <button onclick="filterBySeries(null)" class="px-3 py-1.5 rounded-lg border text-xs whitespace-nowrap transition-all ${
+                        selectedSeries === null 
+                            ? 'bg-white/30 border-white/50 text-white' 
+                            : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/20'
+                    }" id="allBooksBtn">
+                        Все книги
+                    </button>
+                `;
+                
+                allSeries.forEach(series => {
+                    filterHtml += `
+                        <button onclick="filterBySeries('${series.name}')" class="px-3 py-1.5 rounded-lg border text-xs whitespace-nowrap transition-all ${
+                            selectedSeries === series.name 
+                                ? 'bg-purple-500/30 border-purple-400/50 text-white' 
+                                : 'bg-white/10 border-white/20 text-white/60 hover:bg-white/20'
+                        }">
+                            📚 ${series.name} (${series.books.length})
+                        </button>
+                    `;
+                });
+                
+                seriesFilter.innerHTML = filterHtml;
+            } else {
+                seriesFilter.classList.add('hidden');
+            }
+        }
+
+        function clearSearch() {
+            searchQuery = '';
+            searchInput.value = '';
+            selectedSeries = null;
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderLibrary();
+            updateSeriesFilter();
+        }
+
+        // Edit book functions
+        function editBook(bookId) {
+            const book = audiobooks.find(b => b.id === bookId);
+            if (!book) return;
+            
+            editingBook = {
+                ...book,
+                chapters: book.chapters.map(ch => ({ ...ch }))
+            };
+            
+            document.getElementById('editBookTitle').value = book.title || '';
+            document.getElementById('editBookAuthor').value = book.author || '';
+            document.getElementById('editBookCover').value = book.cover || '';
+            document.getElementById('editBookSeries').value = book.series || '';
+            document.getElementById('editBookSeriesOrder').value = book.seriesOrder || 1;
+            
+            renderEditChapters();
+            openModal('editModal');
+        }
+
+        function renderEditChapters() {
+            const container = document.getElementById('editChaptersContainer');
+            
+            let html = '';
+            editingBook.chapters.forEach((chapter, index) => {
+                html += `
+                    <div class="bg-white/10 border border-white/20 rounded-xl p-3 mb-3" data-chapter-index="${index}">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-white/80 text-sm font-medium">Глава ${index + 1}</span>
+                            ${editingBook.chapters.length > 1 ? `
+                                <button onclick="removeEditChapter(${index})" class="p-1 text-white/60 hover:text-red-300">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                        <input type="text" placeholder="Название главы" value="${chapter.title || ''}" onchange="updateEditChapter(${index}, 'title', this.value)" class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm mb-2">
+                        <input type="url" placeholder="MP3 ссылка" value="${chapter.url || ''}" onchange="updateEditChapter(${index}, 'url', this.value)" class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function addEditChapter() {
+            editingBook.chapters.push({
+                title: `Глава ${editingBook.chapters.length + 1}`,
+                url: ''
+            });
+            renderEditChapters();
+        }
+
+        function removeEditChapter(index) {
+            if (editingBook.chapters.length > 1) {
+                editingBook.chapters.splice(index, 1);
+                renderEditChapters();
+            }
+        }
+
+        function updateEditChapter(index, field, value) {
+            if (editingBook.chapters[index]) {
+                editingBook.chapters[index][field] = value;
+            }
+        }
+
+        function saveEditedBook() {
+            if (!safeStringTrim(editingBook.title)) {
+                showError('Введите название книги');
+                return;
+            }
+
+            // Get current values from inputs
+            editingBook.title = safeStringTrim(document.getElementById('editBookTitle').value);
+            editingBook.author = safeStringTrim(document.getElementById('editBookAuthor').value) || 'Неизвестный автор';
+            editingBook.cover = safeStringTrim(document.getElementById('editBookCover').value) || null;
+            editingBook.series = safeStringTrim(document.getElementById('editBookSeries').value) || null;
+            editingBook.seriesOrder = parseInt(document.getElementById('editBookSeriesOrder').value) || 1;
+
+            const validChapters = editingBook.chapters.filter(ch => 
+                ch && ch.url && safeStringTrim(ch.url)
+            );
+
+            if (validChapters.length === 0) {
+                showError('Добавьте хотя бы одну главу');
+                return;
+            }
+
+            editingBook.chapters = validChapters;
+
+            const bookIndex = audiobooks.findIndex(book => book.id === editingBook.id);
+            if (bookIndex !== -1) {
+                audiobooks[bookIndex] = editingBook;
+                
+                if (currentBook?.id === editingBook.id) {
+                    currentBook = editingBook;
+                    if (currentChapter >= editingBook.chapters.length) {
+                        currentChapter = 0;
+                    }
+                    updatePlayer();
+                }
+                
+                saveData();
+                renderLibrary();
+                closeModal('editModal');
+                showSuccess('Книга успешно обновлена!');
+            }
+        }
+
+        // Mass upload functions
+        function toggleBulkLinks() {
+            const container = document.getElementById('bulkLinksContainer');
+            container.classList.toggle('hidden');
+            
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('bulkLinksText').focus();
+            }
+        }
+
+        function processBulkLinks() {
+            const text = document.getElementById('bulkLinksText').value;
+            if (!safeStringTrim(text)) {
+                showError('Введите ссылки на главы');
+                return;
+            }
+
+            const links = text
+                .split('\n')
+                .map(line => safeStringTrim(line))
+                .filter(line => line && (line.startsWith('http') || line.startsWith('https')));
+
+            if (links.length === 0) {
+                showError('Не найдено валидных ссылок. Каждая ссылка должна начинаться с http/https');
+                return;
+            }
+
+            // Clear existing chapters and add new ones
+            const container = document.getElementById('chaptersContainer');
+            container.innerHTML = '';
+
+            links.forEach((url, index) => {
+                const chapterTitle = extractChapterTitleFromUrl(url) || `Глава ${index + 1}`;
+                addChapterWithData(chapterTitle, url);
+            });
+
+            clearBulkLinks();
+            showSuccess(`Загружено ${links.length} ссылок! Названия глав автоматически извлечены из URL.`);
+        }
+
+        function clearBulkLinks() {
+            const bulkLinksElement = document.getElementById('bulkLinksText');
+            const containerElement = document.getElementById('bulkLinksContainer');
+            
+            if (bulkLinksElement) {
+                bulkLinksElement.value = '';
+            }
+            if (containerElement) {
+                containerElement.classList.add('hidden');
+            }
+        }
+
+        function extractChapterTitleFromUrl(url) {
+            try {
+                const urlObj = new URL(url);
+                const pathname = urlObj.pathname;
+                const filename = pathname.split('/').pop();
+                
+                if (filename && filename.includes('.')) {
+                    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+                    const decodedName = decodeURIComponent(nameWithoutExt);
+                    
+                    const cleanName = decodedName
+                        .replace(/^\d+[.\-_\s]*/, '')
+                        .replace(/[\-_]/g, ' ')
+                        .trim();
+                    
+                    return cleanName || null;
+                }
+            } catch (e) {
+                // If URL parsing fails
+            }
+            
+            return null;
+        }
+
+        function addChapterWithData(title, url) {
+            const container = document.getElementById('chaptersContainer');
+            const chapterCount = container.children.length + 1;
+            const div = document.createElement('div');
+            div.className = 'chapter-input flex space-x-2 mb-2';
+            div.innerHTML = `
+                <div class="flex-1 space-y-2">
+                    <input type="text" placeholder="Название главы ${chapterCount}" value="${title || ''}" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                    <input type="url" placeholder="Глава ${chapterCount} (MP3 ссылка)" value="${url}" class="w-full bg-white/20 border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                </div>
+                <button onclick="removeChapter(this)" class="p-2 text-white/60 hover:text-red-300">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            lucide.createIcons();
+            updateChapterButtons();
+        }
+
+        // File upload functions
+        function handleFileUpload(event) {
+            const files = Array.from(event.target.files).filter(file => 
+                file.type === 'audio/mpeg' || file.type === 'audio/mp3' || file.name.toLowerCase().endsWith('.mp3')
+            );
+
+            if (files.length === 0) {
+                showError('Выберите MP3 файлы для загрузки');
+                return;
+            }
+
+            showUploadProgress();
+            
+            // Clear existing chapters
+            document.getElementById('chaptersContainer').innerHTML = '';
+
+            files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+            files.forEach((file, index) => {
+                updateProgress(((index + 1) / files.length) * 100);
+
+                const fileUrl = URL.createObjectURL(file);
+                const fileName = file.name.replace(/\.[^/.]+$/, '');
+                const chapterTitle = fileName.replace(/^\d+[.\-_\s]*/, '') || `Глава ${index + 1}`;
+
+                addChapterWithData(chapterTitle, fileUrl);
+            });
+
+            hideUploadProgress();
+            showSuccess(`Загружено ${files.length} файлов!`);
+            event.target.value = '';
+        }
+
+        function showUploadProgress() {
+            document.getElementById('uploadProgress').classList.remove('hidden');
+        }
+
+        function hideUploadProgress() {
+            document.getElementById('uploadProgress').classList.add('hidden');
+            updateProgress(0);
+        }
+
+        function updateProgress(percentage) {
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = Math.round(percentage) + '%';
+        }
+
+        // Drag and drop functions
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('bg-blue-500/30');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('bg-blue-500/30');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('bg-blue-500/30');
+
+                const files = Array.from(e.dataTransfer.files).filter(file => 
+                    file.type === 'audio/mpeg' || file.type === 'audio/mp3' || file.name.toLowerCase().endsWith('.mp3')
+                );
+
+                if (files.length === 0) {
+                    showError('Перетащите MP3 файлы');
+                    return;
+                }
+
+                const fakeEvent = { target: { files: files, value: '' } };
+                handleFileUpload(fakeEvent);
+            });
+        }
+
+        // Enhanced addBook function
+        function addBook() {
+            const title = safeStringTrim(document.getElementById('newBookTitle').value);
+            const author = safeStringTrim(document.getElementById('newBookAuthor').value) || 'Неизвестный автор';
+            const cover = safeStringTrim(document.getElementById('newBookCover').value);
+            const series = safeStringTrim(document.getElementById('newBookSeries').value);
+            const seriesOrder = parseInt(document.getElementById('newBookSeriesOrder').value) || 1;
+            
+            if (!title) {
+                showError('Введите название книги');
+                return;
+            }
+
+            const chapterInputs = document.querySelectorAll('.chapter-input');
+            const chapters = [];
+            
+            chapterInputs.forEach((inputDiv, index) => {
+                const titleInput = inputDiv.querySelector('input[type="text"]');
+                const urlInput = inputDiv.querySelector('input[type="url"]');
+                
+                const chapterTitle = titleInput ? safeStringTrim(titleInput.value) : '';
+                const chapterUrl = urlInput ? safeStringTrim(urlInput.value) : '';
+                
+                if (chapterUrl) {
+                    chapters.push({
+                        title: chapterTitle || `Глава ${index + 1}`,
+                        url: chapterUrl
+                    });
+                }
+            });
+
+            if (chapters.length === 0) {
+                showError('Добавьте хотя бы одну главу');
+                return;
+            }
+
+            const audiobook = {
+                id: Date.now(),
+                title: title,
+                author: author,
+                cover: cover || null,
+                chapters: chapters,
+                addedDate: new Date().toISOString(),
+                series: series || null,
+                seriesOrder: series ? seriesOrder : null
+            };
+
+            audiobooks.push(audiobook);
+            saveData();
+            renderLibrary();
+            updateSeriesFilter();
+            checkAchievements();
+            closeModal('addModal');
+            resetNewBookForm();
+            showSuccess('Книга добавлена!');
+        }
+
+        function resetNewBookForm() {
+            document.getElementById('newBookTitle').value = '';
+            document.getElementById('newBookAuthor').value = '';
+            document.getElementById('newBookCover').value = '';
+            document.getElementById('newBookSeries').value = '';
+            document.getElementById('newBookSeriesOrder').value = '1';
+            
+            const container = document.getElementById('chaptersContainer');
+            container.innerHTML = `
+                <div class="chapter-input flex space-x-2 mb-2">
+                    <input type="url" placeholder="Глава 1 (MP3 ссылка)" class="flex-1 bg-white/20 border border-white/30 rounded-xl px-3 py-2 text-white placeholder-white/60 focus:outline-none text-sm">
+                    <button onclick="removeChapter(this)" class="p-2 text-white/60 hover:text-red-300 opacity-0 pointer-events-none">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // Achievement system - 108 unique achievements
+        const availableAchievements = [
+            // === LIBRARY BUILDING ACHIEVEMENTS (15) ===
+            {
+                id: 'first_book',
+                name: 'Первая книга',
+                description: 'Добавьте свою первую аудиокнигу',
+                icon: '📚',
+                condition: () => audiobooks.length >= 1,
+                rarity: 'common'
+            },
+            {
+                id: 'book_collector',
+                name: 'Коллекционер',
+                description: 'Соберите 5 книг в библиотеке',
+                icon: '📖',
+                condition: () => audiobooks.length >= 5,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'library_master',
+                name: 'Мастер библиотеки',
+                description: 'Соберите 10 книг в библиотеке',
+                icon: '🏛️',
+                condition: () => audiobooks.length >= 10,
+                rarity: 'rare'
+            },
+            {
+                id: 'bibliophile',
+                name: 'Библиофил',
+                description: 'Соберите 25 книг в библиотеке',
+                icon: '📚✨',
+                condition: () => audiobooks.length >= 25,
+                rarity: 'epic'
+            },
+            {
+                id: 'library_legend',
+                name: 'Легенда библиотек',
+                description: 'Соберите 50 книг в библиотеке',
+                icon: '🏛️👑',
+                condition: () => audiobooks.length >= 50,
+                rarity: 'legendary'
+            },
+            {
+                id: 'mega_collector',
+                name: 'Мега коллекционер',
+                description: 'Соберите 100 книг в библиотеке',
+                icon: '📚🔥',
+                condition: () => audiobooks.length >= 100,
+                rarity: 'legendary'
+            },
+            {
+                id: 'early_adopter',
+                name: 'Ранний пользователь',
+                description: 'Добавьте книгу в первые 24 часа использования',
+                icon: '🌅',
+                condition: () => {
+                    const firstBook = audiobooks.sort((a, b) => new Date(a.addedDate) - new Date(b.addedDate))[0];
+                    return firstBook && new Date() - new Date(firstBook.addedDate) < 24 * 60 * 60 * 1000;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'daily_adder',
+                name: 'Ежедневное пополнение',
+                description: 'Добавляйте по книге каждый день в течение недели',
+                icon: '📅📚',
+                condition: () => {
+                    const dates = audiobooks.map(book => new Date(book.addedDate).toDateString());
+                    const uniqueDates = [...new Set(dates)];
+                    return uniqueDates.length >= 7;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'bulk_importer',
+                name: 'Массовый импорт',
+                description: 'Добавьте 5 книг за один день',
+                icon: '📦📚',
+                condition: () => {
+                    const today = new Date().toDateString();
+                    const todayBooks = audiobooks.filter(book => 
+                        new Date(book.addedDate).toDateString() === today
+                    );
+                    return todayBooks.length >= 5;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'genre_explorer',
+                name: 'Исследователь жанров',
+                description: 'Добавьте книги 5 разных авторов',
+                icon: '🗺️📖',
+                condition: () => {
+                    const authors = [...new Set(audiobooks.map(book => book.author.toLowerCase()))];
+                    return authors.length >= 5;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'author_fan',
+                name: 'Фанат автора',
+                description: 'Соберите 5 книг одного автора',
+                icon: '⭐📝',
+                condition: () => {
+                    const authorCounts = {};
+                    audiobooks.forEach(book => {
+                        const author = book.author.toLowerCase();
+                        authorCounts[author] = (authorCounts[author] || 0) + 1;
+                    });
+                    return Math.max(...Object.values(authorCounts), 0) >= 5;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'weekend_warrior',
+                name: 'Воин выходных',
+                description: 'Добавьте 10 книг в выходные дни',
+                icon: '🏖️📚',
+                condition: () => {
+                    const weekendBooks = audiobooks.filter(book => {
+                        const day = new Date(book.addedDate).getDay();
+                        return day === 0 || day === 6; // Sunday or Saturday
+                    });
+                    return weekendBooks.length >= 10;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'midnight_reader',
+                name: 'Полуночный читатель',
+                description: 'Добавьте книгу после полуночи',
+                icon: '🌙📖',
+                condition: () => {
+                    return audiobooks.some(book => {
+                        const hour = new Date(book.addedDate).getHours();
+                        return hour >= 0 && hour <= 5;
+                    });
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'quality_curator',
+                name: 'Куратор качества',
+                description: 'Все ваши книги имеют обложки',
+                icon: '🎨📚',
+                condition: () => audiobooks.length >= 10 && audiobooks.every(book => book.cover),
+                rarity: 'rare'
+            },
+            {
+                id: 'organization_master',
+                name: 'Мастер организации',
+                description: 'Используйте поиск 20 раз',
+                icon: '🔍🎯',
+                condition: () => getStorageItem('search_count', 0) >= 20,
+                rarity: 'uncommon'
+            },
+
+            // === LISTENING ACHIEVEMENTS (20) ===
+            {
+                id: 'first_listen',
+                name: 'Первый слушатель',
+                description: 'Прослушайте первые 5 минут любой книги',
+                icon: '🎧',
+                condition: () => Object.values(bookmarks).some(time => time >= 300),
+                rarity: 'common'
+            },
+            {
+                id: 'dedicated_listener',
+                name: 'Преданный слушатель',
+                description: 'Прослушайте книгу более 30 минут',
+                icon: '⏰',
+                condition: () => Object.values(bookmarks).some(time => time >= 1800),
+                rarity: 'uncommon'
+            },
+            {
+                id: 'marathon_listener',
+                name: 'Марафонец',
+                description: 'Прослушайте книгу более 2 часов',
+                icon: '🏃‍♂️🎧',
+                condition: () => Object.values(bookmarks).some(time => time >= 7200),
+                rarity: 'rare'
+            },
+            {
+                id: 'endurance_champion',
+                name: 'Чемпион выносливости',
+                description: 'Прослушайте книгу более 5 часов',
+                icon: '🏆⏳',
+                condition: () => Object.values(bookmarks).some(time => time >= 18000),
+                rarity: 'epic'
+            },
+            {
+                id: 'ultra_marathoner',
+                name: 'Ультрамарафонец',
+                description: 'Прослушайте книгу более 10 часов',
+                icon: '🚀🎧',
+                condition: () => Object.values(bookmarks).some(time => time >= 36000),
+                rarity: 'legendary'
+            },
+            {
+                id: 'speed_demon',
+                name: 'Демон скорости',
+                description: 'Прослушайте на скорости 2x более 30 минут',
+                icon: '⚡🎧',
+                condition: () => getStorageItem('fast_listening_time', 0) >= 1800,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'slow_and_steady',
+                name: 'Медленно но верно',
+                description: 'Прослушайте на скорости 0.5x более 1 часа',
+                icon: '🐌🎧',
+                condition: () => getStorageItem('slow_listening_time', 0) >= 3600,
+                rarity: 'rare'
+            },
+            {
+                id: 'night_owl',
+                name: 'Ночная сова',
+                description: 'Слушайте после полуночи более 1 часа',
+                icon: '🦉🌙',
+                condition: () => getStorageItem('night_listening_time', 0) >= 3600,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'early_bird',
+                name: 'Ранняя пташка',
+                description: 'Слушайте до 6 утра более 1 часа',
+                icon: '🐦🌅',
+                condition: () => getStorageItem('morning_listening_time', 0) >= 3600,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'commuter',
+                name: 'Пассажир',
+                description: 'Слушайте в будние дни более 10 часов',
+                icon: '🚊📱',
+                condition: () => getStorageItem('weekday_listening_time', 0) >= 36000,
+                rarity: 'rare'
+            },
+            {
+                id: 'weekend_binger',
+                name: 'Выходной марафонец',
+                description: 'Прослушайте 6 часов за выходные',
+                icon: '🛋️🎧',
+                condition: () => getStorageItem('weekend_listening_time', 0) >= 21600,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'chapter_hopper',
+                name: 'Прыгун по главам',
+                description: 'Переключите главы 50 раз',
+                icon: '⏭️📖',
+                condition: () => getStorageItem('chapter_switches', 0) >= 50,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'rewind_master',
+                name: 'Мастер перемотки',
+                description: 'Используйте перемотку назад 100 раз',
+                icon: '⏪🎯',
+                condition: () => getStorageItem('rewind_count', 0) >= 100,
+                rarity: 'rare'
+            },
+            {
+                id: 'skip_forward_pro',
+                name: 'Профи перемотки вперед',
+                description: 'Используйте перемотку вперед 100 раз',
+                icon: '⏩🎯',
+                condition: () => getStorageItem('forward_count', 0) >= 100,
+                rarity: 'rare'
+            },
+            {
+                id: 'pause_master',
+                name: 'Мастер паузы',
+                description: 'Поставьте на паузу 200 раз',
+                icon: '⏸️🎭',
+                condition: () => getStorageItem('pause_count', 0) >= 200,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'volume_controller',
+                name: 'Регулировщик громкости',
+                description: 'Измените громкость 50 раз',
+                icon: '🔊🎛️',
+                condition: () => getStorageItem('volume_changes', 0) >= 50,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'multitasker',
+                name: 'Многозадачник',
+                description: 'Слушайте 5 разных книг за день',
+                icon: '🔄📚',
+                condition: () => {
+                    const today = new Date().toDateString();
+                    const todayBooks = Object.keys(bookmarks).filter(key => {
+                        const bookmark = getStorageItem(`${key}_date`);
+                        return bookmark && new Date(bookmark).toDateString() === today;
+                    });
+                    const uniqueBooks = [...new Set(todayBooks.map(key => key.split('_')[0]))];
+                    return uniqueBooks.length >= 5;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'focus_master',
+                name: 'Мастер концентрации',
+                description: 'Слушайте одну книгу без переключений 3 часа',
+                icon: '🧘‍♂️🎧',
+                condition: () => getStorageItem('longest_session', 0) >= 10800,
+                rarity: 'epic'
+            },
+            {
+                id: 'comeback_kid',
+                name: 'Возвращенец',
+                description: 'Вернитесь к прослушиванию после перерыва в неделю',
+                icon: '🔄🎯',
+                condition: () => {
+                    const lastListen = getStorageItem('last_listen_date');
+                    if (!lastListen) return false;
+                    const daysSince = (new Date() - new Date(lastListen)) / (1000 * 60 * 60 * 24);
+                    return daysSince >= 7 && Object.values(bookmarks).some(time => time > 0);
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'consistent_listener',
+                name: 'Постоянный слушатель',
+                description: 'Слушайте каждый день в течение недели',
+                icon: '📅🎧',
+                condition: () => getStorageItem('consecutive_days', 0) >= 7,
+                rarity: 'rare'
+            },
+
+            // === SERIES AND ORGANIZATION ACHIEVEMENTS (12) ===
+            {
+                id: 'series_creator',
+                name: 'Создатель серий',
+                description: 'Создайте свою первую серию книг',
+                icon: '📚🔗',
+                condition: () => audiobooks.some(book => book && book.series && safeStringTrim(book.series)),
+                rarity: 'uncommon'
+            },
+            {
+                id: 'series_master',
+                name: 'Мастер серий',
+                description: 'Создайте 3 разные серии книг',
+                icon: '📚👑',
+                condition: () => {
+                    const series = audiobooks
+                        .filter(book => book.series && safeStringTrim(book.series))
+                        .map(book => book.series.toLowerCase());
+                    return [...new Set(series)].length >= 3;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'series_completionist',
+                name: 'Завершитель серий',
+                description: 'Завершите серию из 5 книг',
+                icon: '📚✅',
+                condition: () => {
+                    const seriesCount = {};
+                    audiobooks.forEach(book => {
+                        if (book.series && safeStringTrim(book.series)) {
+                            const series = book.series.toLowerCase();
+                            seriesCount[series] = (seriesCount[series] || 0) + 1;
+                        }
+                    });
+                    return Math.max(...Object.values(seriesCount), 0) >= 5;
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'epic_series_builder',
+                name: 'Строитель эпических серий',
+                description: 'Создайте серию из 10 книг',
+                icon: '📚🏗️',
+                condition: () => {
+                    const seriesCount = {};
+                    audiobooks.forEach(book => {
+                        if (book.series && safeStringTrim(book.series)) {
+                            const series = book.series.toLowerCase();
+                            seriesCount[series] = (seriesCount[series] || 0) + 1;
+                        }
+                    });
+                    return Math.max(...Object.values(seriesCount), 0) >= 10;
+                },
+                rarity: 'legendary'
+            },
+            {
+                id: 'series_navigator',
+                name: 'Навигатор серий',
+                description: 'Используйте навигацию по сериям 20 раз',
+                icon: '🧭📚',
+                condition: () => getStorageItem('series_navigation_count', 0) >= 20,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'order_perfectionist',
+                name: 'Перфекционист порядка',
+                description: 'Все книги в сериях имеют правильные номера',
+                icon: '🔢✨',
+                condition: () => {
+                    const seriesBooks = audiobooks.filter(book => book.series && safeStringTrim(book.series));
+                    return seriesBooks.length >= 10 && seriesBooks.every(book => book.seriesOrder && book.seriesOrder > 0);
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'parallel_reader',
+                name: 'Параллельный читатель',
+                description: 'Слушайте книги из 3 разных серий в один день',
+                icon: '🔀📚',
+                condition: () => {
+                    const today = new Date().toDateString();
+                    const todayBooks = Object.keys(bookmarks).filter(key => {
+                        const bookmark = getStorageItem(`${key}_date`);
+                        return bookmark && new Date(bookmark).toDateString() === today;
+                    });
+                    const todaySeries = todayBooks.map(key => {
+                        const bookId = key.split('_')[0];
+                        const book = audiobooks.find(b => b.id === parseInt(bookId));
+                        return book?.series;
+                    }).filter(series => series && safeStringTrim(series));
+                    return [...new Set(todaySeries)].length >= 3;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'series_hopper',
+                name: 'Прыгун по сериям',
+                description: 'Переключайтесь между книгами одной серии 10 раз',
+                icon: '⚡📚',
+                condition: () => getStorageItem('series_hops', 0) >= 10,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'anthology_lover',
+                name: 'Любитель антологий',
+                description: 'Соберите 20 отдельных книг без серий',
+                icon: '📖💎',
+                condition: () => {
+                    const standaloneBooks = audiobooks.filter(book => !book.series || !safeStringTrim(book.series));
+                    return standaloneBooks.length >= 20;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'series_starter',
+                name: 'Зачинатель серий',
+                description: 'Начните чтение 5 разных серий',
+                icon: '🚀📚',
+                condition: () => {
+                    const firstBooks = audiobooks.filter(book => 
+                        book.series && safeStringTrim(book.series) && book.seriesOrder === 1
+                    );
+                    const uniqueSeries = [...new Set(firstBooks.map(book => book.series.toLowerCase()))];
+                    return uniqueSeries.length >= 5;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'series_finisher',
+                name: 'Финишер серий',
+                description: 'Дослушайте до конца книгу из каждой серии',
+                icon: '🏁📚',
+                condition: () => {
+                    const series = [...new Set(audiobooks
+                        .filter(book => book.series && safeStringTrim(book.series))
+                        .map(book => book.series.toLowerCase())
+                    )];
+                    
+                    return series.every(seriesName => {
+                        const seriesBooks = audiobooks.filter(book => 
+                            book.series && book.series.toLowerCase() === seriesName
+                        );
+                        return seriesBooks.some(book => {
+                            const lastChapterKey = `${book.id}_${book.chapters.length - 1}`;
+                            return bookmarks[lastChapterKey] && bookmarks[lastChapterKey] > 300;
+                        });
+                    }) && series.length >= 3;
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'chronological_reader',
+                name: 'Хронологический читатель',
+                description: 'Прослушайте серию по порядку от начала до конца',
+                icon: '📅📚',
+                condition: () => {
+                    const series = [...new Set(audiobooks
+                        .filter(book => book.series && safeStringTrim(book.series))
+                        .map(book => book.series.toLowerCase())
+                    )];
+                    
+                    return series.some(seriesName => {
+                        const seriesBooks = audiobooks
+                            .filter(book => book.series && book.series.toLowerCase() === seriesName)
+                            .sort((a, b) => (a.seriesOrder || 1) - (b.seriesOrder || 1));
+                        
+                        if (seriesBooks.length < 3) return false;
+                        
+                        return seriesBooks.every(book => {
+                            const anyChapterKey = Object.keys(bookmarks).find(key => 
+                                key.startsWith(`${book.id}_`)
+                            );
+                            return anyChapterKey && bookmarks[anyChapterKey] > 300;
+                        });
+                    });
+                },
+                rarity: 'epic'
+            },
+
+            // === BOOKMARK AND PROGRESS ACHIEVEMENTS (12) ===
+            {
+                id: 'bookmarks_master',
+                name: 'Мастер закладок',
+                description: 'Создайте 10 закладок',
+                icon: '🔖',
+                condition: () => Object.keys(bookmarks).length >= 10,
+                rarity: 'rare'
+            },
+            {
+                id: 'bookmark_collector',
+                name: 'Коллекционер закладок',
+                description: 'Создайте 25 закладок',
+                icon: '🔖📚',
+                condition: () => Object.keys(bookmarks).length >= 25,
+                rarity: 'epic'
+            },
+            {
+                id: 'bookmark_hoarder',
+                name: 'Накопитель закладок',
+                description: 'Создайте 50 закладок',
+                icon: '🔖💎',
+                condition: () => Object.keys(bookmarks).length >= 50,
+                rarity: 'legendary'
+            },
+            {
+                id: 'precise_listener',
+                name: 'Точный слушатель',
+                description: 'Создайте закладку на точной минуте (например, 15:00)',
+                icon: '🎯⏰',
+                condition: () => Object.values(bookmarks).some(time => time % 60 === 0 && time > 0),
+                rarity: 'uncommon'
+            },
+            {
+                id: 'golden_bookmark',
+                name: 'Золотая закладка',
+                description: 'Создайте закладку на 1 час 23 минуты 45 секунд',
+                icon: '🏆🔖',
+                condition: () => Object.values(bookmarks).some(time => time === 5025), // 1:23:45
+                rarity: 'legendary'
+            },
+            {
+                id: 'chapter_completionist',
+                name: 'Завершитель глав',
+                description: 'Дослушайте 20 глав до конца',
+                icon: '✅📖',
+                condition: () => {
+                    let completedChapters = 0;
+                    audiobooks.forEach(book => {
+                        book.chapters.forEach((chapter, index) => {
+                            const key = `${book.id}_${index}`;
+                            if (bookmarks[key] && bookmarks[key] > 300) { // Assume 5+ minutes means completed
+                                completedChapters++;
+                            }
+                        });
+                    });
+                    return completedChapters >= 20;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'book_finisher',
+                name: 'Финишер книг',
+                description: 'Дослушайте 5 книг до конца',
+                icon: '🏁📚',
+                condition: () => {
+                    let completedBooks = 0;
+                    audiobooks.forEach(book => {
+                        const lastChapterKey = `${book.id}_${book.chapters.length - 1}`;
+                        if (bookmarks[lastChapterKey] && bookmarks[lastChapterKey] > 300) {
+                            completedBooks++;
+                        }
+                    });
+                    return completedBooks >= 5;
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'completionist_legend',
+                name: 'Легенда завершения',
+                description: 'Дослушайте 20 книг до конца',
+                icon: '👑📚',
+                condition: () => {
+                    let completedBooks = 0;
+                    audiobooks.forEach(book => {
+                        const lastChapterKey = `${book.id}_${book.chapters.length - 1}`;
+                        if (bookmarks[lastChapterKey] && bookmarks[lastChapterKey] > 300) {
+                            completedBooks++;
+                        }
+                    });
+                    return completedBooks >= 20;
+                },
+                rarity: 'legendary'
+            },
+            {
+                id: 'progress_tracker',
+                name: 'Отслеживатель прогресса',
+                description: 'Имейте прогресс во всех добавленных книгах',
+                icon: '📊📚',
+                condition: () => {
+                    if (audiobooks.length < 5) return false;
+                    return audiobooks.every(book => {
+                        return Object.keys(bookmarks).some(key => 
+                            key.startsWith(`${book.id}_`) && bookmarks[key] > 60
+                        );
+                    });
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'bookmark_organizer',
+                name: 'Организатор закладок',
+                description: 'Создайте закладки в 10 разных книгах',
+                icon: '🗂️🔖',
+                condition: () => {
+                    const bookIds = Object.keys(bookmarks).map(key => key.split('_')[0]);
+                    return [...new Set(bookIds)].length >= 10;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'deep_diver',
+                name: 'Глубокий ныряльщик',
+                description: 'Создайте 5 закладок в одной книге',
+                icon: '🤿📖',
+                condition: () => {
+                    const bookmarksByBook = {};
+                    Object.keys(bookmarks).forEach(key => {
+                        const bookId = key.split('_')[0];
+                        bookmarksByBook[bookId] = (bookmarksByBook[bookId] || 0) + 1;
+                    });
+                    return Math.max(...Object.values(bookmarksByBook), 0) >= 5;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'comeback_champion',
+                name: 'Чемпион возвращений',
+                description: 'Вернитесь к 10 разным закладкам',
+                icon: '🔄🏆',
+                condition: () => getStorageItem('bookmark_returns', 0) >= 10,
+                rarity: 'rare'
+            },
+
+            // === DISCOVERY AND EXPLORATION ACHIEVEMENTS (10) ===
+            {
+                id: 'feature_explorer',
+                name: 'Исследователь функций',
+                description: 'Используйте все основные функции плеера',
+                icon: '🧭🎛️',
+                condition: () => {
+                    const used = getStorageItem('features_used', []);
+                    const required = ['play', 'pause', 'skip', 'volume', 'speed', 'bookmark'];
+                    return required.every(feature => used.includes(feature));
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'speed_experimenter',
+                name: 'Экспериментатор скорости',
+                description: 'Попробуйте все скорости воспроизведения',
+                icon: '⚡🧪',
+                condition: () => {
+                    const speeds = getStorageItem('speeds_used', []);
+                    const allSpeeds = ['0.5', '0.75', '1', '1.25', '1.5', '2'];
+                    return allSpeeds.every(speed => speeds.includes(speed));
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'modal_master',
+                name: 'Мастер модальных окон',
+                description: 'Откройте все модальные окна',
+                icon: '🪟🎯',
+                condition: () => {
+                    const opened = getStorageItem('modals_opened', []);
+                    const required = ['add', 'settings', 'bookmarks', 'achievements', 'recommendations'];
+                    return required.every(modal => opened.includes(modal));
+                },
+                rarity: 'common'
+            },
+            {
+                id: 'keyboard_warrior',
+                name: 'Воин клавиатуры',
+                description: 'Используйте горячие клавиши 50 раз',
+                icon: '⌨️⚔️',
+                condition: () => getStorageItem('keyboard_shortcuts', 0) >= 50,
+                rarity: 'rare'
+            },
+            {
+                id: 'mobile_listener',
+                name: 'Мобильный слушатель',
+                description: 'Слушайте на мобильном устройстве более 2 часов',
+                icon: '📱🎧',
+                condition: () => {
+                    const isTouchDevice = 'ontouchstart' in window;
+                    return isTouchDevice && Object.values(bookmarks).some(time => time >= 7200);
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'desktop_enthusiast',
+                name: 'Энтузиаст десктопа',
+                description: 'Слушайте на компьютере более 5 часов',
+                icon: '🖥️🎧',
+                condition: () => {
+                    const isTouchDevice = 'ontouchstart' in window;
+                    return !isTouchDevice && Object.values(bookmarks).some(time => time >= 18000);
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'cross_platform',
+                name: 'Кроссплатформенный',
+                description: 'Используйте плеер на разных устройствах',
+                icon: '📱🖥️',
+                condition: () => getStorageItem('device_types', []).length >= 2,
+                rarity: 'rare'
+            },
+            {
+                id: 'offline_warrior',
+                name: 'Офлайн воин',
+                description: 'Слушайте без подключения к интернету',
+                icon: '📡❌',
+                condition: () => getStorageItem('offline_listening', false),
+                rarity: 'rare'
+            },
+            {
+                id: 'beta_tester',
+                name: 'Бета-тестер',
+                description: 'Найдите и сообщите об ошибке',
+                icon: '🐛🔍',
+                condition: () => getStorageItem('reported_bugs', 0) >= 1,
+                rarity: 'epic'
+            },
+            {
+                id: 'power_user',
+                name: 'Опытный пользователь',
+                description: 'Используйте плеер 30 дней подряд',
+                icon: '💪🎧',
+                condition: () => getStorageItem('usage_streak', 0) >= 30,
+                rarity: 'legendary'
+            },
+
+            // === DATA AND BACKUP ACHIEVEMENTS (8) ===
+            {
+                id: 'data_saver',
+                name: 'Хранитель данных',
+                description: 'Создайте первую резервную копию',
+                icon: '💾',
+                condition: () => getStorageItem('exports_made', 0) >= 1,
+                rarity: 'common'
+            },
+            {
+                id: 'data_hoarder',
+                name: 'Накопитель данных',
+                description: 'Создайте резервную копию библиотеки',
+                icon: '💾🛡️',
+                condition: () => {
+                    return getStorageItem('exported_library', false) === 'true';
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'backup_master',
+                name: 'Мастер резервного копирования',
+                description: 'Создайте 5 резервных копий',
+                icon: '💾👑',
+                condition: () => getStorageItem('exports_made', 0) >= 5,
+                rarity: 'rare'
+            },
+            {
+                id: 'data_migrator',
+                name: 'Мигратор данных',
+                description: 'Импортируйте библиотеку из файла',
+                icon: '📥🔄',
+                condition: () => getStorageItem('imports_made', 0) >= 1,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'cross_device_sync',
+                name: 'Синхронизация устройств',
+                description: 'Экспортируйте и импортируйте данные',
+                icon: '🔄📱',
+                condition: () => getStorageItem('exports_made', 0) >= 1 && getStorageItem('imports_made', 0) >= 1,
+                rarity: 'rare'
+            },
+            {
+                id: 'data_archaeologist',
+                name: 'Археолог данных',
+                description: 'Восстановите старую библиотеку',
+                icon: '🏺📚',
+                condition: () => getStorageItem('old_data_restored', false),
+                rarity: 'epic'
+            },
+            {
+                id: 'fresh_starter',
+                name: 'Новое начало',
+                description: 'Очистите все данные и начните заново',
+                icon: '🆕✨',
+                condition: () => getStorageItem('fresh_starts', 0) >= 1,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'data_guardian',
+                name: 'Страж данных',
+                description: 'Никогда не теряйте данные (создавайте резервные копии регулярно)',
+                icon: '🛡️👨‍💻',
+                condition: () => getStorageItem('exports_made', 0) >= 10,
+                rarity: 'legendary'
+            },
+
+            // === SOCIAL AND SHARING ACHIEVEMENTS (6) ===
+            {
+                id: 'recommender',
+                name: 'Рекомендатель',
+                description: 'Откройте раздел рекомендаций 10 раз',
+                icon: '💡👥',
+                condition: () => getStorageItem('recommendations_opened', 0) >= 10,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'suggestion_seeker',
+                name: 'Искатель предложений',
+                description: 'Получите первую рекомендацию',
+                icon: '🔍💡',
+                condition: () => generateRecommendations().length > 0,
+                rarity: 'common'
+            },
+            {
+                id: 'recommendation_follower',
+                name: 'Последователь рекомендаций',
+                description: 'Прослушайте рекомендованную книгу',
+                icon: '✅💡',
+                condition: () => getStorageItem('followed_recommendations', 0) >= 1,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'trend_setter',
+                name: 'Законодатель трендов',
+                description: 'Создайте уникальную коллекцию из 20+ книг',
+                icon: '🎯✨',
+                condition: () => {
+                    const authors = [...new Set(audiobooks.map(book => book.author.toLowerCase()))];
+                    return audiobooks.length >= 20 && authors.length >= 15;
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'community_builder',
+                name: 'Строитель сообщества',
+                description: 'Поделитесь плеером с друзьями',
+                icon: '👥🏗️',
+                condition: () => getStorageItem('shares_made', 0) >= 1,
+                rarity: 'rare'
+            },
+            {
+                id: 'influencer',
+                name: 'Влиятельная личность',
+                description: 'Привлеките 5 новых пользователей',
+                icon: '⭐👑',
+                condition: () => getStorageItem('referrals_made', 0) >= 5,
+                rarity: 'legendary'
+            },
+
+            // === TIME-BASED AND SPECIAL ACHIEVEMENTS (15) ===
+            {
+                id: 'new_year_listener',
+                name: 'Новогодний слушатель',
+                description: 'Слушайте в новогоднюю ночь',
+                icon: '🎉🎧',
+                condition: () => {
+                    const now = new Date();
+                    const isNewYear = (now.getMonth() === 11 && now.getDate() === 31) || 
+                                     (now.getMonth() === 0 && now.getDate() === 1);
+                    return isNewYear && Object.values(bookmarks).some(time => time > 0);
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'halloween_listener',
+                name: 'Хэллоуинский слушатель',
+                description: 'Слушайте в Хэллоуин',
+                icon: '🎃🎧',
+                condition: () => {
+                    const now = new Date();
+                    const isHalloween = now.getMonth() === 9 && now.getDate() === 31;
+                    return isHalloween && Object.values(bookmarks).some(time => time > 0);
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'birthday_listener',
+                name: 'Именинник',
+                description: 'Слушайте в свой день рождения',
+                icon: '🎂🎧',
+                condition: () => getStorageItem('birthday_listening', false),
+                rarity: 'epic'
+            },
+            {
+                id: 'weekend_warrior',
+                name: 'Воин выходных',
+                description: 'Слушайте больше в выходные чем в будни',
+                icon: '🏖️🎧',
+                condition: () => {
+                    const weekendTime = getStorageItem('weekend_listening_time', 0);
+                    const weekdayTime = getStorageItem('weekday_listening_time', 0);
+                    return weekendTime > weekdayTime && weekendTime > 3600;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'workday_warrior',
+                name: 'Будничный воин',
+                description: 'Слушайте больше в будни чем в выходные',
+                icon: '💼🎧',
+                condition: () => {
+                    const weekendTime = getStorageItem('weekend_listening_time', 0);
+                    const weekdayTime = getStorageItem('weekday_listening_time', 0);
+                    return weekdayTime > weekendTime && weekdayTime > 3600;
+                },
+                rarity: 'uncommon'
+            },
+            {
+                id: 'seasonal_listener',
+                name: 'Сезонный слушатель',
+                description: 'Слушайте во все 4 сезона',
+                icon: '🌸🏖️🍂❄️',
+                condition: () => {
+                    const seasons = getStorageItem('seasons_listened', []);
+                    return seasons.length >= 4;
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'monthly_champion',
+                name: 'Чемпион месяца',
+                description: 'Слушайте каждый месяц в году',
+                icon: '📅🏆',
+                condition: () => {
+                    const months = getStorageItem('months_listened', []);
+                    return months.length >= 12;
+                },
+                rarity: 'legendary'
+            },
+            {
+                id: 'leap_year_listener',
+                name: 'Слушатель високосного года',
+                description: 'Слушайте 29 февраля',
+                icon: '📅✨',
+                condition: () => {
+                    const now = new Date();
+                    const isLeapDay = now.getMonth() === 1 && now.getDate() === 29;
+                    return isLeapDay && Object.values(bookmarks).some(time => time > 0);
+                },
+                rarity: 'legendary'
+            },
+            {
+                id: 'time_traveler',
+                name: 'Путешественник во времени',
+                description: 'Слушайте в разных часовых поясах',
+                icon: '🌍⏰',
+                condition: () => getStorageItem('timezones_used', []).length >= 3,
+                rarity: 'epic'
+            },
+            {
+                id: 'insomniac',
+                name: 'Инсомниак',
+                description: 'Слушайте с 2 до 4 утра более 5 часов',
+                icon: '🌙😴',
+                condition: () => getStorageItem('insomniac_time', 0) >= 18000,
+                rarity: 'rare'
+            },
+            {
+                id: 'early_riser',
+                name: 'Ранний подъем',
+                description: 'Слушайте с 5 до 7 утра более 10 часов',
+                icon: '🌅☕',
+                condition: () => getStorageItem('early_morning_time', 0) >= 36000,
+                rarity: 'rare'
+            },
+            {
+                id: 'lunch_listener',
+                name: 'Обеденный слушатель',
+                description: 'Слушайте с 12 до 14 каждый день недели',
+                icon: '🍽️🎧',
+                condition: () => getStorageItem('lunch_listening_days', 0) >= 7,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'evening_relaxer',
+                name: 'Вечерний релакс',
+                description: 'Слушайте с 18 до 22 более 20 часов',
+                icon: '🌆🛋️',
+                condition: () => getStorageItem('evening_time', 0) >= 72000,
+                rarity: 'uncommon'
+            },
+            {
+                id: 'perfect_timing',
+                name: 'Идеальное время',
+                description: 'Начните слушать ровно в 12:00',
+                icon: '🕐✨',
+                condition: () => getStorageItem('perfect_timing', false),
+                rarity: 'rare'
+            },
+            {
+                id: 'century_listener',
+                name: 'Слушатель века',
+                description: 'Накопите 100 часов прослушивания',
+                icon: '💯🎧',
+                condition: () => {
+                    const totalTime = Object.values(bookmarks).reduce((sum, time) => sum + time, 0);
+                    return totalTime >= 360000; // 100 hours
+                },
+                rarity: 'legendary'
+            },
+
+            // === SPECIAL RARE ACHIEVEMENTS (8) ===
+            {
+                id: 'easter_egg_hunter',
+                name: 'Охотник за пасхалками',
+                description: 'Найдите скрытую функцию',
+                icon: '🥚🔍',
+                condition: () => getStorageItem('easter_eggs_found', 0) >= 1,
+                rarity: 'epic'
+            },
+            {
+                id: 'konami_code',
+                name: 'Код Konami',
+                description: 'Введите легендарную комбинацию',
+                icon: '🎮⬆️',
+                condition: () => getStorageItem('konami_entered', false),
+                rarity: 'legendary'
+            },
+            {
+                id: 'developer_greeting',
+                name: 'Привет разработчику',
+                description: 'Откройте консоль разработчика',
+                icon: '👨‍💻👋',
+                condition: () => getStorageItem('console_opened', false),
+                rarity: 'rare'
+            },
+            {
+                id: 'error_survivor',
+                name: 'Выживший после ошибки',
+                description: 'Продолжите использование после критической ошибки',
+                icon: '💥🛡️',
+                condition: () => getStorageItem('errors_survived', 0) >= 1,
+                rarity: 'epic'
+            },
+            {
+                id: 'memory_master',
+                name: 'Мастер памяти',
+                description: 'Используйте плеер без очистки данных браузера месяц',
+                icon: '🧠💾',
+                condition: () => {
+                    const firstUse = getStorageItem('first_use_date');
+                    if (!firstUse) return false;
+                    const daysSince = (new Date() - new Date(firstUse)) / (1000 * 60 * 60 * 24);
+                    return daysSince >= 30;
+                },
+                rarity: 'rare'
+            },
+            {
+                id: 'minimalist',
+                name: 'Минималист',
+                description: 'Используйте плеер с одной книгой более недели',
+                icon: '🎯📚',
+                condition: () => {
+                    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                    return audiobooks.length === 1 && 
+                           audiobooks[0] && 
+                           new Date(audiobooks[0].addedDate) < oneWeekAgo &&
+                           Object.values(bookmarks).some(time => time > 3600);
+                },
+                rarity: 'epic'
+            },
+            {
+                id: 'maximalist',
+                name: 'Максималист',
+                description: 'Соберите библиотеку из 200+ книг',
+                icon: '📚🌟',
+                condition: () => audiobooks.length >= 200,
+                rarity: 'legendary'
+            },
+            {
+                id: 'perfectionist',
+                name: 'Перфекционист',
+                description: 'Дослушайте 100% всех добавленных книг',
+                icon: '💯✨',
+                condition: () => {
+                    if (audiobooks.length < 10) return false;
+                    return audiobooks.every(book => {
+                        const lastChapterKey = `${book.id}_${book.chapters.length - 1}`;
+                        return bookmarks[lastChapterKey] && bookmarks[lastChapterKey] > 300;
+                    });
+                },
+                rarity: 'legendary'
+            }
+        ];
+
+        function checkAchievements() {
+            const unlockedIds = achievements.map(a => a.id);
+            
+            availableAchievements.forEach(achievement => {
+                if (!unlockedIds.includes(achievement.id) && achievement.condition()) {
+                    unlockAchievement(achievement);
+                }
+            });
+            
+            updateAchievementBadge();
+        }
+
+        function unlockAchievement(achievement) {
+            const newAchievement = {
+                id: achievement.id,
+                name: achievement.name,
+                description: achievement.description,
+                icon: achievement.icon,
+                rarity: achievement.rarity,
+                unlockedAt: new Date().toISOString()
+            };
+            
+            achievements.push(newAchievement);
+            saveData();
+            showAchievementNotification(newAchievement);
+        }
+
+        function showAchievementNotification(achievement) {
+            const notification = document.getElementById('achievementNotification');
+            const icon = document.getElementById('achievementIcon');
+            const name = document.getElementById('achievementName');
+            const description = document.getElementById('achievementDescription');
+            const rarity = document.getElementById('achievementRarity');
+            
+            icon.textContent = achievement.icon;
+            name.textContent = achievement.name;
+            description.textContent = achievement.description;
+            rarity.textContent = getRarityName(achievement.rarity);
+            
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                hideAchievementNotification();
+            }, 5000);
+        }
+
+        function hideAchievementNotification() {
+            document.getElementById('achievementNotification').classList.add('hidden');
+        }
+
+        function updateAchievementBadge() {
+            const badge = document.getElementById('achievementsBadge');
+            const count = achievements.length;
+            
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function getRarityColor(rarity) {
+            const colors = {
+                'common': 'from-gray-500/30 to-gray-600/30 border-gray-400/40',
+                'uncommon': 'from-green-500/30 to-green-600/30 border-green-400/40',
+                'rare': 'from-blue-500/30 to-blue-600/30 border-blue-400/40',
+                'epic': 'from-purple-500/30 to-purple-600/30 border-purple-400/40',
+                'legendary': 'from-yellow-500/30 to-orange-500/30 border-yellow-400/40'
+            };
+            return colors[rarity] || colors.common;
+        }
+
+        function getRarityName(rarity) {
+            const names = {
+                'common': 'Обычное',
+                'uncommon': 'Редкое',
+                'rare': 'Очень редкое',
+                'epic': 'Эпическое',
+                'legendary': 'Легендарное'
+            };
+            return names[rarity] || 'Неизвестно';
+        }
+
+        function renderAchievements() {
+            const unlockedContainer = document.getElementById('unlockedAchievements');
+            const lockedContainer = document.getElementById('lockedAchievements');
+            const statsElement = document.getElementById('achievementStats');
+            const progressElement = document.getElementById('achievementProgress');
+            const percentageElement = document.getElementById('achievementPercentage');
+            
+            // Check if elements exist before trying to use them
+            if (!unlockedContainer || !lockedContainer) {
+                console.error('Achievement modal elements not found');
+                return;
+            }
+            
+            const total = availableAchievements.length;
+            const unlocked = achievements.length;
+            const percentage = Math.round((unlocked / total) * 100);
+            
+            if (statsElement) statsElement.textContent = `${unlocked}/${total}`;
+            if (progressElement) progressElement.style.width = percentage + '%';
+            if (percentageElement) percentageElement.textContent = percentage + '%';
+            
+            if (achievements.length === 0) {
+                unlockedContainer.innerHTML = `
+                    <div id="emptyAchievements" class="text-center py-8">
+                        <i data-lucide="trophy" class="w-16 h-16 text-white/20 mx-auto mb-4"></i>
+                        <p class="text-white/60">Достижений пока нет</p>
+                        <p class="text-white/40 text-sm">Слушайте книги, чтобы разблокировать награды!</p>
+                    </div>
+                `;
+            } else {
+                let unlockedHtml = '';
+                achievements
+                    .sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt))
+                    .forEach(achievement => {
+                        unlockedHtml += `
+                            <div class="bg-gradient-to-r ${getRarityColor(achievement.rarity)} backdrop-blur-lg rounded-2xl p-4 border">
+                                <div class="flex items-center space-x-3">
+                                    <div class="text-3xl">${achievement.icon}</div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <h4 class="text-white font-bold">${achievement.name}</h4>
+                                            <span class="text-white/60 text-xs bg-white/20 px-2 py-1 rounded-full">
+                                                ${getRarityName(achievement.rarity)}
+                                            </span>
+                                        </div>
+                                        <p class="text-white/80 text-sm mb-2">${achievement.description}</p>
+                                        <p class="text-white/60 text-xs">
+                                            Разблокировано: ${new Date(achievement.unlockedAt).toLocaleDateString('ru-RU')}
+                                        </p>
+                                    </div>
+                                    <i data-lucide="trophy" class="w-6 h-6 text-yellow-400"></i>
+                                </div>
+                            </div>
+                        `;
+                    });
+                unlockedContainer.innerHTML = unlockedHtml;
+            }
+            
+            let lockedHtml = '';
+            availableAchievements
+                .filter(ach => !achievements.some(a => a.id === ach.id))
+                .forEach(achievement => {
+                    lockedHtml += `
+                        <div class="bg-white/5 border border-white/10 rounded-2xl p-4 opacity-60">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-2xl grayscale">${achievement.icon}</div>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-1">
+                                        <h4 class="text-white/70 font-bold">???</h4>
+                                        <span class="text-white/40 text-xs bg-white/10 px-2 py-1 rounded-full">
+                                            ${getRarityName(achievement.rarity)}
+                                        </span>
+                                    </div>
+                                    <p class="text-white/50 text-sm">${achievement.description}</p>
+                                </div>
+                                <div class="w-6 h-6 border-2 border-white/20 rounded border-dashed"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            lockedContainer.innerHTML = lockedHtml;
+            
+            lucide.createIcons();
+        }
+
+        // Recommendations system
+        function generateRecommendations() {
+            if (audiobooks.length === 0) return [];
+
+            const recommendations = [];
+            
+            // Continue reading
+            const unfinishedBooks = audiobooks.filter(book => {
+                return Object.keys(bookmarks).some(key => {
+                    const [bookId] = key.split('_');
+                    return parseInt(bookId) === book.id && bookmarks[key] > 30;
+                });
+            }).filter(book => {
+                const lastChapterKey = `${book.id}_${book.chapters.length - 1}`;
+                return !bookmarks[lastChapterKey] || bookmarks[lastChapterKey] < 300;
+            });
+
+            if (unfinishedBooks.length > 0) {
+                recommendations.push({
+                    type: 'continue',
+                    title: 'Продолжить чтение',
+                    icon: '📖',
+                    books: unfinishedBooks.slice(0, 3),
+                    reason: 'У вас есть начатые книги'
+                });
+            }
+            
+            // New books
+            const unlistenedBooks = audiobooks.filter(book => {
+                return !Object.keys(bookmarks).some(key => {
+                    const [bookId] = key.split('_');
+                    return parseInt(bookId) === book.id && bookmarks[key] > 30;
+                });
+            });
+
+            if (unlistenedBooks.length > 0) {
+                recommendations.push({
+                    type: 'unlistened',
+                    title: 'Новые книги',
+                    icon: '🆕',
+                    books: unlistenedBooks.slice(0, 4),
+                    reason: 'Книги, которые вы еще не слушали'
+                });
+            }
+            
+            // Short books
+            const shortBooks = audiobooks.filter(book => book.chapters.length <= 5 && !Object.keys(bookmarks).some(key => {
+                const [bookId] = key.split('_');
+                return parseInt(bookId) === book.id && bookmarks[key] > 30;
+            }));
+
+            if (shortBooks.length > 0) {
+                recommendations.push({
+                    type: 'quick_listen',
+                    title: 'Быстрое прослушивание',
+                    icon: '⚡',
+                    books: shortBooks.slice(0, 3),
+                    reason: 'Короткие книги для быстрого прослушивания'
+                });
+            }
+
+            return recommendations.filter(rec => rec.books.length > 0);
+        }
+
+        function getRecommendationStats() {
+            const totalBooks = audiobooks.length;
+            
+            const listenedBooks = audiobooks.filter(book => {
+                return Object.keys(bookmarks).some(key => {
+                    const [bookId] = key.split('_');
+                    return parseInt(bookId) === book.id && bookmarks[key] > 30;
+                });
+            }).length;
+            
+            const completedBooks = audiobooks.filter(book => {
+                const lastChapterKey = `${book.id}_${book.chapters.length - 1}`;
+                return bookmarks[lastChapterKey] && bookmarks[lastChapterKey] > 300;
+            }).length;
+            
+            return {
+                totalBooks,
+                listenedBooks,
+                completedBooks,
+                unlistenedBooks: totalBooks - listenedBooks,
+                completionRate: totalBooks > 0 ? Math.round((completedBooks / totalBooks) * 100) : 0
+            };
+        }
+
+        function renderRecommendations() {
+            const stats = getRecommendationStats();
+            const recommendations = generateRecommendations();
+            
+            // Update stats with null checks
+            const totalBooksElement = document.getElementById('totalBooksCount');
+            const completedBooksElement = document.getElementById('completedBooksCount');
+            const inProgressBooksElement = document.getElementById('inProgressBooksCount');
+            const unlistenedBooksElement = document.getElementById('unlistenedBooksCount');
+            const completionRateElement = document.getElementById('completionRate');
+            const completionBarElement = document.getElementById('completionBar');
+            
+            if (totalBooksElement) totalBooksElement.textContent = stats.totalBooks;
+            if (completedBooksElement) completedBooksElement.textContent = stats.completedBooks;
+            if (inProgressBooksElement) inProgressBooksElement.textContent = stats.listenedBooks - stats.completedBooks;
+            if (unlistenedBooksElement) unlistenedBooksElement.textContent = stats.unlistenedBooks;
+            if (completionRateElement) completionRateElement.textContent = stats.completionRate + '%';
+            if (completionBarElement) completionBarElement.style.width = stats.completionRate + '%';
+            
+            // Update recommendations badge
+            const badge = document.getElementById('recommendationsBadge');
+            if (recommendations.length > 0) {
+                badge.textContent = recommendations.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+            
+            const container = document.getElementById('recommendationsList');
+            
+            if (!container) {
+                console.error('Recommendations container not found');
+                return;
+            }
+            
+            if (recommendations.length === 0) {
+                container.innerHTML = `
+                    <div id="emptyRecommendations" class="text-center py-8">
+                        <i data-lucide="lightbulb" class="w-16 h-16 text-white/20 mx-auto mb-4"></i>
+                        <p class="text-white/60 mb-2">Пока нет рекомендаций</p>
+                        <p class="text-white/40 text-sm">Послушайте несколько книг, чтобы получить персональные рекомендации!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            recommendations.forEach(recommendation => {
+                html += `
+                    <div class="bg-white/10 border border-white/20 rounded-2xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-white font-semibold flex items-center">
+                                <span class="text-xl mr-2">${recommendation.icon}</span>
+                                ${recommendation.title}
+                            </h4>
+                            <span class="text-white/60 text-xs bg-white/20 px-2 py-1 rounded-full">
+                                ${recommendation.books.length} книг
+                            </span>
+                        </div>
+                        
+                        <p class="text-white/70 text-sm mb-4">${recommendation.reason}</p>
+                        
+                        <div class="grid gap-3">
+                            ${recommendation.books.map(book => `
+                                <div class="flex items-center space-x-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all cursor-pointer" onclick="selectBook(${book.id}); closeModal('recommendationsModal');">
+                                    <div class="flex-shrink-0">
+                                        ${book.cover ? 
+                                            `<img src="${book.cover}" alt="${book.title}" class="w-10 h-14 rounded-lg object-cover" onerror="this.style.display='none'; this.nextSibling.style.display='flex';">` : 
+                                            ''}
+                                        <div class="w-10 h-14 rounded-lg bg-gradient-to-br from-purple-500/30 to-pink-500/30 border border-white/30 flex items-center justify-center ${book.cover ? 'hidden' : 'flex'}">
+                                            <i data-lucide="music" class="w-4 h-4 text-white/60"></i>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex-1 min-w-0">
+                                        <h5 class="text-white font-medium text-sm truncate">${book.title}</h5>
+                                        <p class="text-white/60 text-xs truncate">${book.author}</p>
+                                        ${book.series ? `<p class="text-white/50 text-xs truncate">📚 ${book.series} #${book.seriesOrder || 1}</p>` : ''}
+                                        <span class="text-white/50 text-xs">${book.chapters.length} глав</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function getAllBookmarks() {
+            return Object.entries(bookmarks)
+                .map(([key, time]) => {
+                    const [bookId, chapterIndex] = key.split('_');
+                    const book = audiobooks.find(b => b.id === parseInt(bookId));
+                    if (!book || time <= 0) return null;
+                    
+                    return {
+                        bookId: parseInt(bookId),
+                        chapterIndex: parseInt(chapterIndex),
+                        time,
+                        bookTitle: book.title,
+                        bookAuthor: book.author,
+                        chapterTitle: book.chapters[parseInt(chapterIndex)]?.title || `Глава ${parseInt(chapterIndex) + 1}`
+                    };
+                })
+                .filter(Boolean)
+                .sort((a, b) => b.time - a.time);
+        }
+
+        function renderBookmarks() {
+            const allBookmarks = getAllBookmarks();
+            const container = document.getElementById('bookmarksList');
+            
+            if (allBookmarks.length === 0) {
+                container.innerHTML = `
+                    <div id="emptyBookmarks" class="text-center py-8">
+                        <i data-lucide="bookmark-check" class="w-12 h-12 text-white/30 mx-auto mb-3"></i>
+                        <p class="text-white/60">Нет закладок</p>
+                        <p class="text-white/40 text-sm mt-1">Закладки сохраняются автоматически</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            allBookmarks.forEach(bookmark => {
+                html += `
+                    <div class="bg-white/10 border border-white/20 rounded-2xl p-4 hover:bg-white/15 transition-all">
+                        <h4 class="text-white font-medium text-sm mb-1 truncate">
+                            ${bookmark.bookTitle}
+                        </h4>
+                        <p class="text-white/60 text-xs mb-2 truncate">
+                            ${bookmark.bookAuthor} • ${bookmark.chapterTitle}
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-yellow-300 text-sm">
+                                <i data-lucide="bookmark-check" class="w-4 h-4 mr-1"></i>
+                                <span>${formatTime(bookmark.time)}</span>
+                            </div>
+                            <button onclick="jumpToBookmark(${bookmark.bookId}, ${bookmark.chapterIndex}, ${bookmark.time})" class="bg-white/20 border border-white/30 rounded-lg px-3 py-1 text-white text-xs hover:bg-white/30 transition-all">
+                                Перейти
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <button onclick="clearAllBookmarks()" class="w-full bg-red-500/20 border border-red-300/30 rounded-2xl py-2 text-red-200 text-sm hover:bg-red-500/30 transition-all">
+                    Очистить все
+                </button>
+            `;
+            
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function jumpToBookmark(bookId, chapterIndex, time) {
+            const book = audiobooks.find(b => b.id === bookId);
+            if (!book) return;
+            
+            selectBook(bookId);
+            currentChapter = chapterIndex;
+            
+            setTimeout(() => {
+                if (audio.duration) {
+                    audio.currentTime = time;
+                }
+                updatePlayer();
+            }, 500);
+            
+            closeModal('bookmarksModal');
+        }
+
+        function clearAllBookmarks() {
+            if (confirm('Очистить все закладки?')) {
+                bookmarks = {};
+                saveData();
+                renderBookmarks();
+            }
+        }
+
+        // Open Link Collector
+        function openLinkCollector() {
+            window.open('https://vteme1.github.io/Link-Collection-Manager', '_blank');
+            showSuccess('Сборщик ссылок открыт в новой вкладке!');
+        }
+
+        // Enhanced search functionality
+        function setupSearch() {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                const clearBtn = document.getElementById('clearSearchBtn');
+                
+                if (searchQuery.trim()) {
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    clearBtn.classList.add('hidden');
+                }
+                
+                if (showSeriesView) {
+                    renderSeriesView();
+                } else {
+                    renderLibrary();
+                }
+            });
+        }
+
+        // Enhanced modal system
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) {
+                console.error('Modal not found:', modalId);
+                return;
+            }
+            modal.classList.remove('hidden');
+            
+            // Load content when opening modals
+            switch(modalId) {
+                case 'bookmarksModal':
+                    renderBookmarks();
+                    break;
+                case 'recommendationsModal':
+                    renderRecommendations();
+                    break;
+                case 'achievementsModal':
+                    renderAchievements();
+                    break;
+                case 'addModal':
+                    // Populate series datalist if it exists
+                    const seriesDatalist = document.getElementById('existing-series');
+                    if (seriesDatalist) {
+                        const allSeries = getAllSeries();
+                        seriesDatalist.innerHTML = allSeries.map(series => 
+                            `<option value="${series.name}">`
+                        ).join('');
+                    }
+                    break;
+            }
+        }
+
+        // Initialize app
+        function initializeApp() {
+            initializeData();
+            renderLibrary();
+            updatePlayer();
+            updateSeriesFilter();
+            updateAchievementBadge();
+            checkAchievements();
+            setupSearch();
+            setupImportHandler();
+            setupFileUploadHandler();
+            setupDragAndDrop();
+        }
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+        
+        // Setup file upload handler
+        function setupFileUploadHandler() {
+            const massUploadElement = document.getElementById('massUpload');
+            if (massUploadElement) {
+                massUploadElement.addEventListener('change', handleFileUpload);
+            }
+        }
+        
+        // Setup drag and drop
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('bg-blue-500/30');
+            });
+
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('bg-blue-500/30');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('bg-blue-500/30');
+
+                const files = Array.from(e.dataTransfer.files).filter(file => 
+                    file.type === 'audio/mpeg' || file.type === 'audio/mp3' || file.name.toLowerCase().endsWith('.mp3')
+                );
+
+                if (files.length === 0) {
+                    showError('Перетащите MP3 файлы');
+                    return;
+                }
+
+                const fakeEvent = { target: { files: files, value: '' } };
+                handleFileUpload(fakeEvent);
+            });
+        }
+
+    </script>
+</body>
+</html>
