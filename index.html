@@ -152,82 +152,6 @@
             .mobile-text {
                 font-size: 0.9rem;
             }
-            
-            /* Fix header spacing on mobile */
-            .header-buttons {
-                gap: 0.25rem !important;
-                flex-wrap: wrap;
-            }
-            
-            /* Ensure buttons don't overflow */
-            .header-buttons button {
-                flex-shrink: 0;
-                min-width: 2rem;
-                min-height: 2rem;
-            }
-            
-            /* Header layout improvements */
-            .header-main {
-                flex-wrap: wrap;
-            }
-            
-            /* Hide text on smallest screens */
-            @media (max-width: 280px) {
-                .btn-text {
-                    display: none !important;
-                }
-            }
-            
-            /* Compact text on very small screens */
-            @media (max-width: 380px) {
-                h1 {
-                    font-size: 1.125rem !important;
-                }
-                
-                .header-buttons button {
-                    padding: 0.375rem !important;
-                    min-width: 1.75rem !important;
-                    min-height: 1.75rem !important;
-                }
-                
-                .header-buttons i {
-                    width: 0.875rem !important;
-                    height: 0.875rem !important;
-                }
-                
-                .header-main {
-                    flex-direction: column !important;
-                    gap: 1rem !important;
-                }
-                
-                .header-main > div:first-child {
-                    width: 100% !important;
-                }
-                
-                .header-buttons {
-                    width: 100% !important;
-                    justify-content: center !important;
-                    gap: 0.5rem !important;
-                }
-            }
-            
-            /* Ultra compact for very small screens */
-            @media (max-width: 320px) {
-                .header-buttons button {
-                    padding: 0.25rem !important;
-                    min-width: 1.5rem !important;
-                    min-height: 1.5rem !important;
-                }
-                
-                .header-buttons i {
-                    width: 0.75rem !important;
-                    height: 0.75rem !important;
-                }
-                
-                .header-buttons {
-                    gap: 0.25rem !important;
-                }
-            }
         }
     </style>
 </head>
@@ -236,40 +160,40 @@
         
         <!-- Header -->
         <header class="glass-effect bg-white/10 rounded-3xl p-4 sm:p-6 border border-white/20 hover-lift">
-            <div class="flex justify-between items-center mb-4 header-main">
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    <div class="p-2 sm:p-3 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-xl sm:rounded-2xl border border-white/20">
-                        <i data-lucide="headphones" class="w-6 h-6 sm:w-8 sm:h-8 text-white"></i>
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-2xl border border-white/20">
+                        <i data-lucide="headphones" class="w-8 h-8 text-white"></i>
                     </div>
-                    <div class="min-w-0 flex-1">
-                        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white truncate">Аудиоплеер</h1>
-                        <p class="text-white/60 text-xs sm:text-sm truncate">Ваша личная библиотека</p>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-white">Аудиоплеер</h1>
+                        <p class="text-white/60 text-sm">Ваша личная библиотека</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center space-x-1 sm:space-x-2 header-buttons flex-wrap justify-end">
-                    <button onclick="openModal('recommendationsModal')" class="btn-secondary p-2 sm:p-3 rounded-lg sm:rounded-xl hover-lift relative flex-shrink-0" title="Рекомендации">
-                        <i data-lucide="lightbulb" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
-                        <div id="recommendationsBadge" class="absolute -top-1 -right-1 bg-blue-400 text-white text-xs rounded-full w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex items-center justify-center font-bold hidden">
+                <div class="flex items-center space-x-2">
+                    <button onclick="openModal('recommendationsModal')" class="btn-secondary p-3 rounded-xl hover-lift relative" title="Рекомендации">
+                        <i data-lucide="lightbulb" class="w-5 h-5 text-white"></i>
+                        <div id="recommendationsBadge" class="absolute -top-1 -right-1 bg-blue-400 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold hidden">
                             <span class="text-xs">!</span>
                         </div>
                     </button>
                     
-                    <button onclick="openModal('achievementsModal')" class="btn-secondary p-2 sm:p-3 rounded-lg sm:rounded-xl hover-lift relative flex-shrink-0" title="Достижения">
-                        <i data-lucide="trophy" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
-                        <div id="achievementsBadge" class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs rounded-full w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex items-center justify-center font-bold hidden"></div>
+                    <button onclick="openModal('achievementsModal')" class="btn-secondary p-3 rounded-xl hover-lift relative" title="Достижения">
+                        <i data-lucide="trophy" class="w-5 h-5 text-white"></i>
+                        <div id="achievementsBadge" class="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold hidden"></div>
                     </button>
                     
-                    <button onclick="openModal('bookmarksModal')" class="btn-secondary p-2 sm:p-3 rounded-lg sm:rounded-xl hover-lift flex-shrink-0" title="Закладки">
-                        <i data-lucide="bookmark-check" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                    <button onclick="openModal('bookmarksModal')" class="btn-secondary p-3 rounded-xl hover-lift" title="Закладки">
+                        <i data-lucide="bookmark-check" class="w-5 h-5 text-white"></i>
                     </button>
                     
-                    <button onclick="openModal('addModal')" class="btn-primary p-2 sm:p-3 rounded-lg sm:rounded-xl hover-lift flex-shrink-0" title="Добавить книгу">
-                        <i data-lucide="plus" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                    <button onclick="openModal('addModal')" class="btn-primary p-3 rounded-xl hover-lift" title="Добавить книгу">
+                        <i data-lucide="plus" class="w-5 h-5 text-white"></i>
                     </button>
                     
-                    <button onclick="openModal('settingsModal')" class="btn-secondary p-2 sm:p-3 rounded-lg sm:rounded-xl hover-lift flex-shrink-0" title="Настройки">
-                        <i data-lucide="settings" class="w-4 h-4 sm:w-5 sm:h-5 text-white"></i>
+                    <button onclick="openModal('settingsModal')" class="btn-secondary p-3 rounded-xl hover-lift" title="Настройки">
+                        <i data-lucide="settings" class="w-5 h-5 text-white"></i>
                     </button>
                 </div>
             </div>
@@ -1204,58 +1128,101 @@ https://example.com/chapter2.mp3
             }
             
             try {
-                audio.pause();
+                // Останавливаем текущее воспроизведение
+                if (!audio.paused) {
+                    audio.pause();
+                }
                 isPlaying = false;
-                updatePlayButton();
                 
                 const chapter = currentBook.chapters[currentChapter];
                 if (!chapter || !chapter.url) {
                     console.error('Invalid chapter data');
+                    showError('Неверные данные главы');
                     return;
                 }
                 
+                console.log('Loading chapter:', chapter.title, chapter.url);
+                
+                // Очищаем старый источник
+                audio.src = '';
+                
+                // Устанавливаем новый источник и загружаем
                 audio.src = chapter.url;
                 audio.load();
+                
+                // Принудительно обновляем кнопку воспроизведения
+                setTimeout(() => {
+                    updatePlayButton();
+                }, 100);
+                
+                // Восстанавливаем сохраненную позицию
+                const savedTime = getSavedTime();
+                if (savedTime > 0) {
+                    audio.addEventListener('loadedmetadata', () => {
+                        if (audio.duration && savedTime < audio.duration) {
+                            audio.currentTime = savedTime;
+                            console.log('Restored position:', formatTime(savedTime));
+                        }
+                    }, { once: true });
+                }
+                
             } catch (error) {
                 console.error('Error loading chapter:', error);
-            }
-            
-            // Restore saved position
-            const savedTime = getSavedTime();
-            if (savedTime > 0) {
-                audio.addEventListener('loadedmetadata', () => {
-                    if (savedTime < audio.duration) {
-                        audio.currentTime = savedTime;
-                    }
-                }, { once: true });
+                showError('Ошибка загрузки главы');
             }
         }
 
         function togglePlay() {
-            if (!currentBook) return;
+            if (!currentBook) {
+                showError('Сначала выберите книгу для воспроизведения');
+                return;
+            }
+            
+            if (!audio.src || audio.src === '') {
+                showError('Не удается загрузить аудиофайл');
+                return;
+            }
+            
+            console.log('Toggle play clicked. Current state:', isPlaying);
             
             if (isPlaying) {
                 audio.pause();
+                // Состояние обновится через событие 'pause'
             } else {
-                audio.play().catch(error => {
+                // Показываем индикатор загрузки
+                const playButton = document.getElementById('playBtn');
+                playButton.innerHTML = '<i data-lucide="loader" class="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin"></i>';
+                lucide.createIcons();
+                
+                audio.play().then(() => {
+                    console.log('Audio started successfully');
+                    // Состояние обновится через событие 'play'
+                }).catch(error => {
                     console.error('Playback error:', error);
+                    isPlaying = false;
+                    updatePlayButton();
                     showError('Ошибка воспроизведения. Проверьте ссылку на файл.');
                 });
             }
         }
 
         function updatePlayButton() {
-            const icon = playBtn.querySelector('i');
-            if (!icon) {
-                console.error('Play button icon not found');
+            const playButton = document.getElementById('playBtn');
+            if (!playButton) {
+                console.error('Play button not found');
                 return;
             }
-            if (isPlaying) {
-                icon.setAttribute('data-lucide', 'pause');
-            } else {
-                icon.setAttribute('data-lucide', 'play');
-            }
+            
+            // Определяем нужную иконку
+            const iconName = isPlaying ? 'pause' : 'play';
+            
+            // Полностью заменяем содержимое кнопки
+            playButton.innerHTML = `<i data-lucide="${iconName}" class="w-6 h-6 sm:w-8 sm:h-8 text-white"></i>`;
+            
+            // Обновляем иконки Lucide
             lucide.createIcons();
+            
+            console.log('Play button updated. Is playing:', isPlaying, 'Icon:', iconName);
         }
 
         function skipTime(seconds) {
@@ -2041,14 +2008,22 @@ https://example.com/chapter2.mp3
         function setupAudioEventListeners() {
             // Audio event listeners
             audio.addEventListener('play', () => {
+                console.log('Audio play event fired');
                 isPlaying = true;
-                updatePlayButton();
+                // Небольшая задержка для корректного обновления
+                setTimeout(() => {
+                    updatePlayButton();
+                }, 50);
             });
 
             audio.addEventListener('pause', () => {
+                console.log('Audio pause event fired');
                 isPlaying = false;
-                updatePlayButton();
-                saveProgress();
+                // Небольшая задержка для корректного обновления
+                setTimeout(() => {
+                    updatePlayButton();
+                    saveProgress();
+                }, 50);
             });
 
             audio.addEventListener('timeupdate', () => {
